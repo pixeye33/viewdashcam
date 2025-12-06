@@ -110,69 +110,79 @@
   font-weight: 600;
   z-index: 10;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
 }
 
-.event-selector {
+.datetime-display:hover {
+  background: rgba(0, 0, 0, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+.events-panel {
   position: absolute;
   top: 70px;
   left: 20px;
-  right: 20px;
   background: rgba(0, 0, 0, 0.9);
   padding: 15px;
   border-radius: 10px;
   z-index: 10;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 800px;
+  max-width: 400px;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
 }
 
-.event-selector-label {
+.events-panel-header {
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   opacity: 0.8;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.event-selector-buttons {
+.events-panel-list {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.event-button {
+.event-item {
   background: rgba(255, 255, 255, 0.1);
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 15px;
+  padding: 12px 15px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 4px;
-  font-family: 'Courier New', monospace;
 }
 
-.event-button:hover {
+.event-item:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
+  transform: translateX(4px);
 }
 
-.event-button.active {
+.event-item.active {
   background: #667eea;
   border-color: #667eea;
   box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
 }
 
-.event-video-count {
+.event-item-datetime {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.event-item-info {
   font-size: 0.75rem;
   opacity: 0.8;
   font-weight: 400;
@@ -308,23 +318,29 @@
     font-size: 0.9rem;
   }
 
-  .event-selector {
+  .events-panel {
     top: 55px;
     left: 10px;
-    right: 10px;
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 200px);
     padding: 10px;
   }
 
-  .event-selector-label {
+  .events-panel-header {
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+
+  .event-item {
+    padding: 10px 12px;
+  }
+
+  .event-item-datetime {
     font-size: 0.75rem;
   }
 
-  .event-button {
-    padding: 8px 12px;
-    font-size: 0.75rem;
-  }
-
-  .event-video-count {
+  .event-item-info {
     font-size: 0.65rem;
   }
 

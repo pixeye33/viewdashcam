@@ -9,6 +9,7 @@ function App() {
   const [eventDateTime, setEventDateTime] = useState(null)
   const [allEvents, setAllEvents] = useState({}) // Store all events grouped by datetime
   const [selectedEvent, setSelectedEvent] = useState(null) // Currently selected event datetime
+  const [showEventsPanel, setShowEventsPanel] = useState(true) // Events panel visibility
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
@@ -118,6 +119,9 @@ function App() {
     setSelectedEvent(oldestEvent)
     setVideos(oldestEventVideos)
     setEventDateTime(oldestEvent)
+    
+    // Hide events panel by default if there's only one event
+    setShowEventsPanel(sortedEventKeys.length > 1)
     
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
     const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
@@ -262,25 +266,29 @@ function App() {
         <div className="video-container">
           {/* Event DateTime Display */}
           {eventDateTime && (
-            <div className="datetime-display">
+            <div 
+              className="datetime-display"
+              onClick={() => setShowEventsPanel(!showEventsPanel)}
+              style={{ cursor: 'pointer' }}
+            >
               {formatDateTime(eventDateTime, Math.floor(currentTime))}
             </div>
           )}
 
-          {/* Event Selector - Only show if multiple events exist */}
-          {Object.keys(allEvents).length > 1 && (
-            <div className="event-selector">
-              <div className="event-selector-label">Events:</div>
-              <div className="event-selector-buttons">
+          {/* Events Panel - Always show when events exist */}
+          {Object.keys(allEvents).length > 0 && showEventsPanel && (
+            <div className="events-panel">
+              <div className="events-panel-header">Events</div>
+              <div className="events-panel-list">
                 {Object.keys(allEvents).sort().map((eventKey) => (
-                  <button
+                  <div
                     key={eventKey}
-                    className={`event-button ${eventKey === selectedEvent ? 'active' : ''}`}
+                    className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
                     onClick={() => handleEventSwitch(eventKey)}
                   >
-                    {formatDateTime(eventKey, 0)}
-                    <span className="event-video-count">({allEvents[eventKey].length} videos)</span>
-                  </button>
+                    <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
+                    <div className="event-item-info">{allEvents[eventKey].length} videos</div>
+                  </div>
                 ))}
               </div>
             </div>
