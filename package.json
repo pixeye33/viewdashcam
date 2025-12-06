@@ -1,0 +1,22 @@
+{
+  "name": "dashview",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "A frontend-only React app for playing videos via drag-and-drop",
+  "dependencies": {
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.6"
+  }
+}
