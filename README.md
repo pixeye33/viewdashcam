@@ -16,6 +16,7 @@ If you have **dashcam footage** or **multi-camera recordings** from different an
 
 - **Multi-Event Support** - Load videos from multiple events/incidents and switch between them instantly
 - **Multi-Angle Synchronized Playback** - View all camera angles of an event in perfect sync
+- **Tesla SEI Metadata Visualization** - Real-time vehicle telemetry data synced with video playback for compatible Tesla dashcam videos
 - **Smart Panel Hiding** - Events panel auto-hides for single events, toggle by clicking the datetime
 - **Drag and drop** video files to play them instantly
 - **Browser-based playback** - supports all common video formats (MP4, WebM, OGG, etc.)
@@ -94,6 +95,28 @@ Name your videos using this pattern: `YYYY-MM-DD_HH-MM-SS-angle.mp4`
 - All camera angles stay **perfectly synchronized**
 - The **datetime display** shows the current timestamp (event time + video position)
 - Select any angle to make it the main view while keeping others in sync
+
+### Tesla SEI Metadata (Vehicle Telemetry)
+
+For compatible Tesla dashcam videos (recorded on firmware 2025.44.25 or later with HW3+), ViewDashCam automatically extracts and displays real-time vehicle data synced with video playback:
+
+- **Vehicle Speed** - Current speed in meters per second
+- **Steering Wheel Angle** - Steering position in degrees
+- **Accelerator Pedal Position** - Throttle input percentage
+- **Brake Applied** - Brake pedal status
+- **Gear State** - Current gear (Park, Drive, Reverse, Neutral)
+- **Autopilot State** - Self-Driving, Autosteer, TACC, or None
+- **Turn Signals** - Left/right blinker status
+- **GPS Location** - Latitude, longitude, and heading
+- **Acceleration** - Linear acceleration in X, Y, Z axes
+
+**How to use:**
+1. Drop your Tesla dashcam videos (MP4 files)
+2. If SEI metadata is detected, a "Show Vehicle Data" button appears
+3. Click to toggle the telemetry panel that updates in real-time as the video plays
+4. All data is processed locally in your browser - nothing is uploaded
+
+**Note:** Not all Tesla dashcam videos contain SEI metadata. Only videos from firmware 2025.44.25+ with HW3 or above include this data. Videos recorded while parked may not contain SEI metadata.
 
 ## Deployment
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
+import { useSEI } from './useSEI'
 
 function App() {
   const [videos, setVideos] = useState([])
@@ -10,9 +11,13 @@ function App() {
   const [allEvents, setAllEvents] = useState({}) // Store all events grouped by datetime
   const [selectedEvent, setSelectedEvent] = useState(null) // Currently selected event datetime
   const [showEventsPanel, setShowEventsPanel] = useState(true) // Events panel visibility
+  const [seiData, setSeiData] = useState({}) // Store SEI data for each video
+  const [currentSEI, setCurrentSEI] = useState(null) // Current frame's SEI data
+  const [showSEIPanel, setShowSEIPanel] = useState(false) // SEI panel visibility
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
+  const { isInitialized: seiInitialized, seiFields, extractSEI, formatSEIValue } = useSEI()
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -142,7 +147,7 @@ function App() {
     processFiles(files)
   }
 
-  const processFiles = (files) => {
+  const processFiles = async (files) => {
     const videoFiles = files.filter(file => file.type.startsWith('video/'))
     
     if (videoFiles.length === 0) {
@@ -151,27 +156,47 @@ function App() {
     }
 
     // Parse filenames and group by datetime
-    const parsedVideos = videoFiles.map(file => {
+    const parsedVideos = await Promise.all(videoFiles.map(async file => {
       const parsed = parseFilename(file.name)
       if (parsed) {
-        return {
+        const videoData = {
           file,
           url: URL.createObjectURL(file),
           dateTime: parsed.dateTime,
           angle: parsed.angle
         }
+        
+        // Extract SEI data if available
+        if (seiInitialized && extractSEI) {
+          try {
+            const seiMessages = await extractSEI(file)
+            if (seiMessages && seiMessages.length > 0) {
+              setSeiData(prev => ({
+                ...prev,
+                [`${parsed.dateTime}-${parsed.angle}`]: seiMessages
+              }))
+              setShowSEIPanel(true)
+            }
+          } catch (error) {
+            console.error('SEI extraction failed for', file.name, error)
+          }
+        }
+        
+        return videoData
       }
       return null
-    }).filter(Boolean)
+    }))
+    
+    const validVideos = parsedVideos.filter(Boolean)
 
-    if (parsedVideos.length === 0) {
+    if (validVideos.length === 0) {
       alert('No videos match the required naming pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4')
       return
     }
 
     // Group by datetime
     const dateTimeGroups = {}
-    parsedVideos.forEach(video => {
+    validVideos.forEach(video => {
       if (!dateTimeGroups[video.dateTime]) {
         dateTimeGroups[video.dateTime] = []
       }
@@ -240,6 +265,17 @@ function App() {
         ref.currentTime = currentTime
       }
     })
+    
+    // Update SEI data for current frame
+    if (selectedAngle && eventDateTime) {
+      const key = `${eventDateTime}-${selectedAngle}`
+      const messages = seiData[key]
+      if (messages && messages.length > 0) {
+        // Estimate frame index based on video time (assuming ~30fps)
+        const frameIndex = Math.min(Math.floor(currentTime * 30), messages.length - 1)
+        setCurrentSEI(messages[frameIndex])
+      }
+    }
   }
 
   // Sync seeking
@@ -336,12 +372,22 @@ function App() {
         <div className="video-container">
           {/* Event DateTime Display */}
           {eventDateTime && (
-            <div 
-              className="datetime-display"
-              onClick={() => setShowEventsPanel(!showEventsPanel)}
-              style={{ cursor: 'pointer' }}
-            >
-              {formatDateTime(eventDateTime, Math.floor(currentTime))}
+            <div className="header-controls">
+              <div 
+                className="datetime-display"
+                onClick={() => setShowEventsPanel(!showEventsPanel)}
+                style={{ cursor: 'pointer' }}
+              >
+                {formatDateTime(eventDateTime, Math.floor(currentTime))}
+              </div>
+              {Object.keys(seiData).length > 0 && (
+                <button 
+                  className="sei-toggle-btn"
+                  onClick={() => setShowSEIPanel(!showSEIPanel)}
+                >
+                  {showSEIPanel ? 'Hide' : 'Show'} Vehicle Data
+                </button>
+              )}
             </div>
           )}
 
@@ -382,6 +428,37 @@ function App() {
               </video>
             )}
           </div>
+
+          {/* SEI Data Panel */}
+          {showSEIPanel && currentSEI && seiFields && (
+            <div className="sei-panel">
+              <div className="sei-panel-header">
+                <span>Vehicle Telemetry</span>
+                <button 
+                  className="sei-close-btn"
+                  onClick={() => setShowSEIPanel(false)}
+                  aria-label="Close SEI panel"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="sei-grid">
+                {seiFields.map(({ propName, label, enumMap }) => {
+                  const value = currentSEI[propName]
+                  if (value === undefined || value === null) return null
+                  
+                  const displayValue = formatSEIValue(value, enumMap)
+                  
+                  return (
+                    <div key={propName} className="sei-item">
+                      <div className="sei-label">{label}</div>
+                      <div className="sei-value">{displayValue}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Thumbnail Videos */}
           <div className="thumbnail-container">
