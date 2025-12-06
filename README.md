@@ -1,14 +1,20 @@
 # DashView
 
+> **Note:** This project is entirely coded by AI. A secondary goal of this project is to see how bad of a dev I can be and still have a working project.
+
 A simple, elegant frontend-only React app for playing videos via drag-and-drop. Built with React and Vite.
 
 ## Features
 
-- Drag and drop video files to play them instantly
-- Supports all common video formats (MP4, WebM, OGG, etc.)
-- Full-page video player experience
-- Responsive design that works on all devices
-- Clean, modern UI with smooth animations
+- **Drag and drop** video files to play them instantly
+- **Browser-based playback** - supports all common video formats (MP4, WebM, OGG, etc.)
+- **Full-page video player** experience with native HTML5 controls
+- **Responsive design** that works on all devices
+- **Clean, modern UI** with smooth animations
+
+## Privacy & Security
+
+**All processing happens locally in your browser.** No data is uploaded to any server. Your video files never leave your device. The app is completely frontend-only and works entirely offline after the initial page load.
 
 ## Live Demo
 
