@@ -7,6 +7,8 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [eventDateTime, setEventDateTime] = useState(null)
+  const [allEvents, setAllEvents] = useState({}) // Store all events grouped by datetime
+  const [selectedEvent, setSelectedEvent] = useState(null) // Currently selected event datetime
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
@@ -96,7 +98,7 @@ function App() {
       return
     }
 
-    // Group by datetime and get the most common one
+    // Group by datetime
     const dateTimeGroups = {}
     parsedVideos.forEach(video => {
       if (!dateTimeGroups[video.dateTime]) {
@@ -105,22 +107,21 @@ function App() {
       dateTimeGroups[video.dateTime].push(video)
     })
 
-    // Find the datetime with most videos
-    let maxGroup = []
-    let selectedDateTime = null
-    Object.entries(dateTimeGroups).forEach(([dateTime, group]) => {
-      if (group.length > maxGroup.length) {
-        maxGroup = group
-        selectedDateTime = dateTime
-      }
-    })
+    // Sort events by datetime (oldest first)
+    const sortedEventKeys = Object.keys(dateTimeGroups).sort()
+    
+    // Select the oldest event by default
+    const oldestEvent = sortedEventKeys[0]
+    const oldestEventVideos = dateTimeGroups[oldestEvent]
 
-    setVideos(maxGroup)
-    setEventDateTime(selectedDateTime)
+    setAllEvents(dateTimeGroups)
+    setSelectedEvent(oldestEvent)
+    setVideos(oldestEventVideos)
+    setEventDateTime(oldestEvent)
     
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
-    const frontVideo = maxGroup.find(v => v.angle.toLowerCase() === 'front')
-    setSelectedAngle(frontVideo ? frontVideo.angle : maxGroup[0].angle)
+    const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
+    setSelectedAngle(frontVideo ? frontVideo.angle : oldestEventVideos[0].angle)
   }
 
   const handleThumbnailClick = (angle) => {
@@ -179,15 +180,39 @@ function App() {
     })
   }
 
+  const handleEventSwitch = (eventKey) => {
+    if (eventKey === selectedEvent) return
+    
+    const eventVideos = allEvents[eventKey]
+    setSelectedEvent(eventKey)
+    setVideos(eventVideos)
+    setEventDateTime(eventKey)
+    setCurrentTime(0)
+    
+    // Reset video playback
+    if (mainVideoRef.current) {
+      mainVideoRef.current.currentTime = 0
+      mainVideoRef.current.pause()
+    }
+    
+    // Select 'front' angle by default, or first angle if 'front' doesn't exist
+    const frontVideo = eventVideos.find(v => v.angle.toLowerCase() === 'front')
+    setSelectedAngle(frontVideo ? frontVideo.angle : eventVideos[0].angle)
+  }
+
   const handleClearVideos = () => {
-    // Clean up URLs
-    videos.forEach(video => {
-      URL.revokeObjectURL(video.url)
+    // Clean up URLs for all events
+    Object.values(allEvents).forEach(eventVideos => {
+      eventVideos.forEach(video => {
+        URL.revokeObjectURL(video.url)
+      })
     })
     setVideos([])
     setSelectedAngle(null)
     setEventDateTime(null)
     setCurrentTime(0)
+    setAllEvents({})
+    setSelectedEvent(null)
   }
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
@@ -239,6 +264,25 @@ function App() {
           {eventDateTime && (
             <div className="datetime-display">
               {formatDateTime(eventDateTime, Math.floor(currentTime))}
+            </div>
+          )}
+
+          {/* Event Selector - Only show if multiple events exist */}
+          {Object.keys(allEvents).length > 1 && (
+            <div className="event-selector">
+              <div className="event-selector-label">Events:</div>
+              <div className="event-selector-buttons">
+                {Object.keys(allEvents).sort().map((eventKey) => (
+                  <button
+                    key={eventKey}
+                    className={`event-button ${eventKey === selectedEvent ? 'active' : ''}`}
+                    onClick={() => handleEventSwitch(eventKey)}
+                  >
+                    {formatDateTime(eventKey, 0)}
+                    <span className="event-video-count">({allEvents[eventKey].length} videos)</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
