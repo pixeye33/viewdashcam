@@ -25,4 +25,4 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
-          model: anthropic/claude-sonnet-4-5-20250929
+          model: openrouter/anthropic/claude-sonnet-4.5
