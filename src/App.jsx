@@ -120,6 +120,9 @@ function App() {
     setVideos(oldestEventVideos)
     setEventDateTime(oldestEvent)
     
+    // Hide events panel by default if there's only one event
+    setShowEventsPanel(sortedEventKeys.length > 1)
+    
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
     const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
     setSelectedAngle(frontVideo ? frontVideo.angle : oldestEventVideos[0].angle)
