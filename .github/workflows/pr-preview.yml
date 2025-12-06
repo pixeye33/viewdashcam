@@ -52,7 +52,7 @@ jobs:
       - name: Build PR with specific base path
         run: npm run build
         env:
-          VITE_BASE: /dashview/pr-preview/pr-${{ github.event.pull_request.number }}/
+          VITE_BASE: /pr-preview/pr-${{ github.event.pull_request.number }}/
 
       - name: Add PR preview to _site
         run: |
