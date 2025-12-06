@@ -66,13 +66,75 @@ function App() {
     setIsDragging(false)
   }
 
-  const handleDrop = (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
 
-    const files = Array.from(e.dataTransfer.files)
+    const items = e.dataTransfer.items
+    const files = await getAllFilesFromItems(items)
     processFiles(files)
+  }
+
+  // Recursively get all files from dropped items (supports folders)
+  const getAllFilesFromItems = async (items) => {
+    const files = []
+    
+    // Convert items to entries
+    const entries = []
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.kind === 'file') {
+        const entry = item.webkitGetAsEntry()
+        if (entry) {
+          entries.push(entry)
+        }
+      }
+    }
+    
+    // Process each entry
+    for (const entry of entries) {
+      const entryFiles = await processEntry(entry)
+      files.push(...entryFiles)
+    }
+    
+    return files
+  }
+
+  // Process a single entry (file or directory)
+  const processEntry = async (entry) => {
+    if (entry.isFile) {
+      return new Promise((resolve) => {
+        entry.file((file) => resolve([file]), () => resolve([]))
+      })
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader()
+      const files = []
+      
+      // Read all entries in the directory
+      const readEntries = async () => {
+        return new Promise((resolve) => {
+          dirReader.readEntries(async (entries) => {
+            if (entries.length === 0) {
+              resolve()
+            } else {
+              for (const entry of entries) {
+                const entryFiles = await processEntry(entry)
+                files.push(...entryFiles)
+              }
+              // Continue reading (directories might have more than 100 entries)
+              await readEntries()
+              resolve()
+            }
+          })
+        })
+      }
+      
+      await readEntries()
+      return files
+    }
+    
+    return []
   }
 
   const handleFileInput = (e) => {
@@ -253,7 +315,7 @@ function App() {
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" 
               />
             </svg>
-            <h1>Drop your videos here</h1>
+            <h1>Drop your videos or folder here</h1>
             <p>or</p>
             <label className="file-input-label">
               <input 
@@ -262,8 +324,10 @@ function App() {
                 onChange={handleFileInput}
                 className="file-input"
                 multiple
+                webkitdirectory=""
+                directory=""
               />
-              Browse Files
+              Browse Folder
             </label>
             <p className="file-info">
               Videos must follow pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
