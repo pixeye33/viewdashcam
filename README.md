@@ -1,14 +1,29 @@
 # DashView
 
-A simple, elegant frontend-only React app for playing videos via drag-and-drop. Built with React and Vite.
+> **Note:** This project is entirely coded by AI. A secondary goal of this project is to see how bad of a dev I can be and still have a working project.
+
+A frontend-only React app for synchronized multi-angle video playback. Perfect for dashcam footage review and any scenario where you need to view multiple camera angles of the same event. Built with React and Vite.
+
+## What Problem Does It Solve?
+
+If you have **dashcam footage** or **multi-camera recordings** from different angles, DashView helps you:
+- **Review incidents efficiently** by viewing all camera angles simultaneously
+- **Manage multiple events** in a single session (e.g., multiple trips or incidents)
+- **Stay synchronized** - all angles play together perfectly aligned
+- **Maintain privacy** - everything processes locally in your browser, no uploads required
 
 ## Features
 
-- Drag and drop video files to play them instantly
-- Supports all common video formats (MP4, WebM, OGG, etc.)
-- Full-page video player experience
-- Responsive design that works on all devices
-- Clean, modern UI with smooth animations
+- **Multi-Event Support** - Load videos from multiple events/incidents and switch between them instantly
+- **Multi-Angle Synchronized Playback** - View all camera angles of an event in perfect sync
+- **Smart Panel Hiding** - Events panel auto-hides for single events, toggle by clicking the datetime
+- **Drag and drop** video files to play them instantly
+- **Browser-based playback** - supports all common video formats (MP4, WebM, OGG, etc.)
+- **Clean, modern UI** with smooth animations and responsive design
+
+## Privacy & Security
+
+**All processing happens locally in your browser.** No data is uploaded to any server. Your video files never leave your device. The app is completely frontend-only and works entirely offline after the initial page load.
 
 ## Live Demo
 
@@ -45,12 +60,40 @@ npm run build
 
 The production-ready files will be in the `dist` directory.
 
-## Usage
+## How to Use
 
-1. Open the app in your browser
-2. Either drag and drop a video file onto the page, or click "Browse Files" to select one
-3. The video will start playing automatically
-4. Click "Choose Another Video" to load a different video
+### Video File Naming
+
+Name your videos using this pattern: `YYYY-MM-DD_HH-MM-SS-angle.mp4`
+
+**Examples:**
+- `2025-12-06_14-30-45-front.mp4`
+- `2025-12-06_14-30-45-rear.mp4`
+- `2025-12-06_14-30-45-left.mp4`
+- `2025-12-06_16-15-20-front.mp4` (different event)
+
+- The **datetime** groups videos into events (all videos with the same datetime are one event)
+- The **angle** identifies the camera view (front, rear, left, right, cabin, etc.)
+
+### Basic Usage
+
+1. **Load videos**: Drag and drop multiple video files onto the page (or click "Browse Files")
+2. **Auto-grouping**: Videos are automatically organized by datetime into separate events
+3. **Playback**: The oldest event loads first, showing all its camera angles
+4. **Switch angles**: Click any camera thumbnail to view that angle (all stay synchronized)
+
+### Multi-Event Features
+
+- **Events Panel**: When you have multiple events, a panel appears on the left showing all available events
+- **Switch events**: Click any event in the panel to load that set of videos
+- **Auto-hide**: If you only load one event, the panel automatically hides for a cleaner view
+- **Toggle panel**: Click the **datetime display** at the top to show/hide the Events Panel
+
+### Viewing Experience
+
+- All camera angles stay **perfectly synchronized**
+- The **datetime display** shows the current timestamp (event time + video position)
+- Select any angle to make it the main view while keeping others in sync
 
 ## Deployment
 
