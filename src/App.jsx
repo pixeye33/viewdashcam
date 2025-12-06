@@ -324,10 +324,8 @@ function App() {
                 onChange={handleFileInput}
                 className="file-input"
                 multiple
-                webkitdirectory=""
-                directory=""
               />
-              Browse Folder
+              Browse Files
             </label>
             <p className="file-info">
               Videos must follow pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
