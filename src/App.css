@@ -93,9 +93,32 @@
   height: 100%;
   position: relative;
   display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+.datetime-display {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.main-player {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: black;
+  background: #000;
+  overflow: hidden;
 }
 
 .video-player {
@@ -103,6 +126,64 @@
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.video-player.main {
+  max-height: 100%;
+}
+
+.thumbnail-container {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.9);
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.thumbnail-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  width: 240px;
+  height: 135px;
+  cursor: pointer;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.thumbnail-wrapper:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-4px);
+}
+
+.thumbnail-wrapper.active {
+  border-color: #667eea;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+}
+
+.video-player.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.thumbnail-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  pointer-events: none;
 }
 
 .clear-button {
@@ -152,5 +233,22 @@
     right: 10px;
     padding: 10px 20px;
     font-size: 0.9rem;
+  }
+
+  .datetime-display {
+    top: 10px;
+    left: 10px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
+
+  .thumbnail-wrapper {
+    width: 180px;
+    height: 101px;
+  }
+
+  .thumbnail-label {
+    font-size: 0.8rem;
+    padding: 6px;
   }
 }
