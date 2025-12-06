@@ -25,7 +25,7 @@ function App() {
     return null
   }
 
-  // Format datetime for display
+  // Format datetime for display based on browser locale
   const formatDateTime = (dateTimeStr, offsetSeconds = 0) => {
     const [datePart, timePart] = dateTimeStr.split('_')
     const [year, month, day] = datePart.split('-')
@@ -35,7 +35,7 @@ function App() {
     const date = new Date(year, month - 1, day, hours, minutes, seconds)
     date.setSeconds(date.getSeconds() + offsetSeconds)
     
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(undefined, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -44,6 +44,14 @@ function App() {
       second: '2-digit',
       hour12: false
     })
+  }
+
+  // Format angle name for display (e.g., "left_repeater" -> "Left Repeater")
+  const formatAngleName = (angle) => {
+    return angle
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
   }
 
   const handleDragOver = (e) => {
@@ -331,7 +339,7 @@ function App() {
                 >
                   Your browser does not support the video tag.
                 </video>
-                <div className="thumbnail-label">{video.angle}</div>
+                <div className="thumbnail-label">{formatAngleName(video.angle)}</div>
               </div>
             ))}
           </div>
