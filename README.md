@@ -1,4 +1,4 @@
-# DashView
+# ViewDashCam
 
 > **Note:** This project is entirely coded by AI. A secondary goal of this project is to see how bad of a dev I can be and still have a working project.
 
@@ -6,7 +6,7 @@ A frontend-only React app for synchronized multi-angle video playback. Perfect f
 
 ## What Problem Does It Solve?
 
-If you have **dashcam footage** or **multi-camera recordings** from different angles, DashView helps you:
+If you have **dashcam footage** or **multi-camera recordings** from different angles, ViewDashCam helps you:
 - **Review incidents efficiently** by viewing all camera angles simultaneously
 - **Manage multiple events** in a single session (e.g., multiple trips or incidents)
 - **Stay synchronized** - all angles play together perfectly aligned
@@ -27,7 +27,7 @@ If you have **dashcam footage** or **multi-camera recordings** from different an
 
 ## Live Demo
 
-The app is deployed on GitHub Pages: [https://pixeye33.github.io/dashview/](https://pixeye33.github.io/dashview/)
+The app is deployed at: [https://viewdash.cam/](https://viewdash.cam/)
 
 ## Local Development
 
@@ -40,8 +40,8 @@ The app is deployed on GitHub Pages: [https://pixeye33.github.io/dashview/](http
 
 ```bash
 # Clone the repository
-git clone https://github.com/pixeye33/dashview.git
-cd dashview
+git clone https://github.com/pixeye33/viewdashcam.git
+cd viewdashcam
 
 # Install dependencies
 npm install
