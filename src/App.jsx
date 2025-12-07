@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 
 function App() {
@@ -10,9 +10,20 @@ function App() {
   const [allEvents, setAllEvents] = useState({}) // Store all events grouped by datetime
   const [selectedEvent, setSelectedEvent] = useState(null) // Currently selected event datetime
   const [showEventsPanel, setShowEventsPanel] = useState(true) // Events panel visibility
+  const [showControls, setShowControls] = useState(true) // Media controls visibility
+  const [showHelpModal, setShowHelpModal] = useState(false) // Help modal visibility
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
+  const [duration, setDuration] = useState(0)
+  const [previewTime, setPreviewTime] = useState(null)
+  const [pendingAngleSwitch, setPendingAngleSwitch] = useState(null)
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
+  const progressBarRef = useRef(null)
+  const previewVideoRef = useRef(null)
+  const previewCanvasRef = useRef(null)
+  const hoverThrottleRef = useRef(null)
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -26,7 +37,7 @@ function App() {
   }
 
   // Format datetime for display based on browser locale
-  const formatDateTime = (dateTimeStr, offsetSeconds = 0) => {
+  const formatDateTime = useCallback((dateTimeStr, offsetSeconds = 0) => {
     const [datePart, timePart] = dateTimeStr.split('_')
     const [year, month, day] = datePart.split('-')
     const [hours, minutes, seconds] = timePart.split('-').map(Number)
@@ -44,15 +55,15 @@ function App() {
       second: '2-digit',
       hour12: false
     })
-  }
+  }, [])
 
   // Format angle name for display (e.g., "left_repeater" -> "Left Repeater")
-  const formatAngleName = (angle) => {
+  const formatAngleName = useCallback((angle) => {
     return angle
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
-  }
+  }, [])
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -196,23 +207,30 @@ function App() {
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
     const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
     setSelectedAngle(frontVideo ? frontVideo.angle : oldestEventVideos[0].angle)
+    
+    // Don't auto-play - let user start playback manually
+    setIsPlaying(false)
   }
 
-  const handleThumbnailClick = (angle) => {
+  const handleThumbnailClick = useCallback((angle) => {
+    // Don't allow clicking on the currently selected angle
+    if (angle === selectedAngle) return
+    
+    // Capture current state before switching
+    if (!mainVideoRef.current) return
+    
+    const currentTime = mainVideoRef.current.currentTime
+    const wasPlaying = !mainVideoRef.current.paused
+    const currentRate = mainVideoRef.current.playbackRate
+    
+    // Store the pending switch data and update the angle
+    setPendingAngleSwitch({ currentTime, wasPlaying, currentRate })
     setSelectedAngle(angle)
-    // Sync the new main video to current time
-    if (mainVideoRef.current) {
-      const currentTime = mainVideoRef.current.currentTime
-      setTimeout(() => {
-        if (mainVideoRef.current) {
-          mainVideoRef.current.currentTime = currentTime
-        }
-      }, 0)
-    }
-  }
+  }, [selectedAngle])
 
   // Synchronize all videos when main video plays/pauses
   const handleMainVideoPlay = () => {
+    setIsPlaying(true)
     Object.values(thumbnailRefsRef.current).forEach(ref => {
       if (ref && ref.paused) {
         ref.play().catch(() => {})
@@ -221,11 +239,18 @@ function App() {
   }
 
   const handleMainVideoPause = () => {
+    setIsPlaying(false)
     Object.values(thumbnailRefsRef.current).forEach(ref => {
       if (ref && !ref.paused) {
         ref.pause()
       }
     })
+  }
+
+  const handleLoadedMetadata = () => {
+    if (mainVideoRef.current) {
+      setDuration(mainVideoRef.current.duration)
+    }
   }
 
   // Synchronize time across all videos
@@ -253,6 +278,110 @@ function App() {
       }
     })
   }
+
+  // Custom playback controls
+  const togglePlayPause = () => {
+    if (mainVideoRef.current) {
+      if (isPlaying) {
+        mainVideoRef.current.pause()
+      } else {
+        mainVideoRef.current.play()
+      }
+    }
+  }
+
+  const seekToFrame = (forward = true) => {
+    if (mainVideoRef.current) {
+      // Pause playback when using frame by frame navigation
+      if (!mainVideoRef.current.paused) {
+        mainVideoRef.current.pause()
+      }
+      
+      const frameRate = 30 // Assume 30fps
+      const frameTime = 1 / frameRate
+      const newTime = mainVideoRef.current.currentTime + (forward ? frameTime : -frameTime)
+      mainVideoRef.current.currentTime = Math.max(0, Math.min(newTime, duration))
+    }
+  }
+
+  const jumpTime = (seconds) => {
+    if (mainVideoRef.current) {
+      const newTime = mainVideoRef.current.currentTime + seconds
+      mainVideoRef.current.currentTime = Math.max(0, Math.min(newTime, duration))
+    }
+  }
+
+  const changePlaybackSpeed = (rate) => {
+    setPlaybackRate(rate)
+    if (mainVideoRef.current) {
+      mainVideoRef.current.playbackRate = rate
+    }
+    Object.values(thumbnailRefsRef.current).forEach(ref => {
+      if (ref) {
+        ref.playbackRate = rate
+      }
+    })
+  }
+
+  const handleProgressClick = (e) => {
+    if (!progressBarRef.current || !mainVideoRef.current) return
+    
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pos = (e.clientX - rect.left) / rect.width
+    const newTime = pos * duration
+    mainVideoRef.current.currentTime = newTime
+  }
+
+  const handleProgressHover = useCallback((e) => {
+    if (!progressBarRef.current) return
+    
+    // Throttle hover events to improve performance
+    if (hoverThrottleRef.current) return
+    
+    hoverThrottleRef.current = setTimeout(() => {
+      hoverThrottleRef.current = null
+    }, 50) // Update every 50ms max
+    
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pos = (e.clientX - rect.left) / rect.width
+    const hoverTime = pos * duration
+    
+    if (hoverTime >= 0 && hoverTime <= duration) {
+      setPreviewTime(hoverTime)
+      
+      // Capture frame at hover time for preview
+      if (previewVideoRef.current && previewCanvasRef.current) {
+        previewVideoRef.current.currentTime = hoverTime
+      }
+    } else {
+      setPreviewTime(null)
+    }
+  }, [duration])
+
+  const handleProgressLeave = useCallback(() => {
+    // Clear any pending throttle
+    if (hoverThrottleRef.current) {
+      clearTimeout(hoverThrottleRef.current)
+      hoverThrottleRef.current = null
+    }
+    setPreviewTime(null)
+  }, [])
+
+  // Capture frame to canvas when preview video seeks
+  const handlePreviewSeeked = useCallback(() => {
+    if (previewVideoRef.current && previewCanvasRef.current) {
+      const canvas = previewCanvasRef.current
+      const video = previewVideoRef.current
+      const ctx = canvas.getContext('2d')
+      
+      // Set canvas size to match video aspect ratio
+      canvas.width = 160
+      canvas.height = (video.videoHeight / video.videoWidth) * 160
+      
+      // Draw current frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    }
+  }, [])
 
   const handleEventSwitch = (eventKey) => {
     if (eventKey === selectedEvent) return
@@ -287,6 +416,134 @@ function App() {
     setCurrentTime(0)
     setAllEvents({})
     setSelectedEvent(null)
+    setIsPlaying(false)
+    setPlaybackRate(1)
+    setDuration(0)
+  }
+
+  // Cleanup throttle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverThrottleRef.current) {
+        clearTimeout(hoverThrottleRef.current)
+      }
+    }
+  }, [])
+
+  // Handle angle switching after re-render
+  useEffect(() => {
+    if (!pendingAngleSwitch || !mainVideoRef.current) return
+    
+    const { currentTime, wasPlaying, currentRate } = pendingAngleSwitch
+    
+    mainVideoRef.current.currentTime = currentTime
+    mainVideoRef.current.playbackRate = currentRate
+    
+    // Restore playing state after seeking completes
+    const handleSeeked = () => {
+      if (wasPlaying && mainVideoRef.current) {
+        mainVideoRef.current.play().catch(() => {})
+      }
+    }
+    
+    mainVideoRef.current.addEventListener('seeked', handleSeeked, { once: true })
+    
+    // Sync thumbnails
+    Object.values(thumbnailRefsRef.current).forEach(ref => {
+      if (ref) {
+        ref.currentTime = currentTime
+        ref.playbackRate = currentRate
+        if (wasPlaying) {
+          ref.play().catch(() => {})
+        }
+      }
+    })
+    
+    // Clear the pending switch
+    setPendingAngleSwitch(null)
+  }, [pendingAngleSwitch])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger shortcuts if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      
+      // Playback controls
+      if (e.code === 'Space') {
+        e.preventDefault()
+        togglePlayPause()
+      } else if (e.code === 'ArrowLeft' && !e.shiftKey) {
+        e.preventDefault()
+        seekToFrame(false)
+      } else if (e.code === 'ArrowRight' && !e.shiftKey) {
+        e.preventDefault()
+        seekToFrame(true)
+      } else if (e.code === 'ArrowLeft' && e.shiftKey) {
+        e.preventDefault()
+        jumpTime(-10)
+      } else if (e.code === 'ArrowRight' && e.shiftKey) {
+        e.preventDefault()
+        jumpTime(10)
+      }
+      
+      // Speed controls with Q, W, E, R, T, Y
+      if (e.code === 'KeyQ') {
+        e.preventDefault()
+        changePlaybackSpeed(0.25)
+      } else if (e.code === 'KeyW') {
+        e.preventDefault()
+        changePlaybackSpeed(0.5)
+      } else if (e.code === 'KeyE') {
+        e.preventDefault()
+        changePlaybackSpeed(1)
+      } else if (e.code === 'KeyR') {
+        e.preventDefault()
+        changePlaybackSpeed(1.25)
+      } else if (e.code === 'KeyT') {
+        e.preventDefault()
+        changePlaybackSpeed(1.5)
+      } else if (e.code === 'KeyY') {
+        e.preventDefault()
+        changePlaybackSpeed(2)
+      }
+      
+      // Direct angle selection with number keys (only if videos are loaded)
+      if (videos.length > 0) {
+        // Arrow keys for cycling through angles
+        const currentIndex = videos.findIndex(v => v.angle === selectedAngle)
+        if (e.code === 'ArrowUp') {
+          e.preventDefault()
+          const prevIndex = (currentIndex - 1 + videos.length) % videos.length
+          handleThumbnailClick(videos[prevIndex].angle)
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault()
+          const nextIndex = (currentIndex + 1) % videos.length
+          handleThumbnailClick(videos[nextIndex].angle)
+        }
+        
+        // Number keys 1-9 for direct angle selection
+        const numKey = e.code.match(/^(Digit|Numpad)([1-9])$/)
+        if (numKey) {
+          const angleIndex = parseInt(numKey[2]) - 1
+          if (angleIndex < videos.length) {
+            e.preventDefault()
+            handleThumbnailClick(videos[angleIndex].angle)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isPlaying, videos, selectedAngle, duration])
+
+  // Format time for display
+  const formatTime = (seconds) => {
+    if (isNaN(seconds)) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
@@ -334,54 +591,229 @@ function App() {
         </div>
       ) : (
         <div className="video-container">
-          {/* Event DateTime Display */}
-          {eventDateTime && (
+          {/* Controls Overlay */}
+          {showControls && (
+            <div className="controls-overlay">
+              {/* Event DateTime Display */}
+              {eventDateTime && (
+                <div 
+                  className="datetime-display"
+                  onClick={() => {
+                    setShowEventsPanel(!showEventsPanel)
+                    setShowControls(!showControls)
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {formatDateTime(eventDateTime, Math.floor(currentTime))}
+                </div>
+              )}
+
+              {/* Events Panel - Always show when events exist */}
+              {Object.keys(allEvents).length > 0 && showEventsPanel && (
+                <div className="events-panel">
+                  <div className="events-panel-header">Events</div>
+                  <div className="events-panel-list">
+                    {Object.keys(allEvents).sort().map((eventKey) => (
+                      <div
+                        key={eventKey}
+                        className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
+                        onClick={() => handleEventSwitch(eventKey)}
+                      >
+                        <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
+                        <div className="event-item-info">{allEvents[eventKey].length} videos</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Button and Help Button */}
+              <div className="top-buttons">
+                <button 
+                  className="clear-button"
+                  onClick={handleClearVideos}
+                >
+                  Choose Other Videos
+                </button>
+                <button 
+                  className="help-button"
+                  onClick={() => setShowHelpModal(true)}
+                >
+                  Help
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Date display when controls are hidden - clickable to show controls */}
+          {!showControls && eventDateTime && (
             <div 
               className="datetime-display"
-              onClick={() => setShowEventsPanel(!showEventsPanel)}
+              onClick={() => {
+                setShowEventsPanel(!showEventsPanel)
+                setShowControls(!showControls)
+              }}
               style={{ cursor: 'pointer' }}
             >
               {formatDateTime(eventDateTime, Math.floor(currentTime))}
             </div>
           )}
 
-          {/* Events Panel - Always show when events exist */}
-          {Object.keys(allEvents).length > 0 && showEventsPanel && (
-            <div className="events-panel">
-              <div className="events-panel-header">Events</div>
-              <div className="events-panel-list">
-                {Object.keys(allEvents).sort().map((eventKey) => (
-                  <div
-                    key={eventKey}
-                    className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
-                    onClick={() => handleEventSwitch(eventKey)}
-                  >
-                    <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
-                    <div className="event-item-info">{allEvents[eventKey].length} videos</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Main Video Player */}
           <div className="main-player">
             {selectedVideo && (
-              <video
-                ref={mainVideoRef}
-                src={selectedVideo.url}
-                controls
-                autoPlay
-                className="video-player main"
-                onPlay={handleMainVideoPlay}
-                onPause={handleMainVideoPause}
-                onTimeUpdate={handleMainVideoTimeUpdate}
-                onSeeking={handleMainVideoSeeking}
-              >
-                Your browser does not support the video tag.
-              </video>
+              <>
+                 <video
+                  ref={mainVideoRef}
+                  src={selectedVideo.url}
+                  className="video-player main"
+                  onPlay={handleMainVideoPlay}
+                  onPause={handleMainVideoPause}
+                  onTimeUpdate={handleMainVideoTimeUpdate}
+                  onSeeking={handleMainVideoSeeking}
+                  onLoadedMetadata={handleLoadedMetadata}
+                >
+                  Your browser does not support the video tag.
+                </video>
+
+                {/* Hidden preview video for frame capture */}
+                <video
+                  ref={previewVideoRef}
+                  src={selectedVideo.url}
+                  muted
+                  onSeeked={handlePreviewSeeked}
+                  style={{ display: 'none' }}
+                />
+
+                 {/* Custom Controls - Part of overlay */}
+                {showControls && <div className="custom-controls">
+                  {/* Control Buttons */}
+                  <div className="controls-row">
+                    <div className="controls-left">
+                      {/* Play/Pause */}
+                      <button 
+                        className="control-btn"
+                        onClick={togglePlayPause}
+                        title="Play/Pause (Space)"
+                      >
+                        {isPlaying ? (
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        )}
+                      </button>
+
+                      {/* Previous Frame */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => seekToFrame(false)}
+                        title="Previous Frame (←)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(180deg)' }}>
+                          <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
+                        </svg>
+                      </button>
+
+                      {/* Next Frame */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => seekToFrame(true)}
+                        title="Next Frame (→)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
+                        </svg>
+                      </button>
+
+                      {/* Jump Back 10s */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => jumpTime(-10)}
+                        title="Jump Back 10s (Shift+←)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                          <text x="9" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
+                        </svg>
+                      </button>
+
+                      {/* Jump Forward 10s */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => jumpTime(10)}
+                        title="Jump Forward 10s (Shift+→)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                          <text x="9.5" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="controls-right">
+                      {/* Playback Speed */}
+                      <div className="speed-controls">
+                        {[
+                          { rate: 0.25, key: 'Q' },
+                          { rate: 0.5, key: 'W' },
+                          { rate: 1, key: 'E' },
+                          { rate: 1.25, key: 'R' },
+                          { rate: 1.5, key: 'T' },
+                          { rate: 2, key: 'Y' }
+                        ].map(({ rate, key }) => (
+                          <button
+                            key={rate}
+                            className={`speed-btn ${playbackRate === rate ? 'active' : ''}`}
+                            onClick={() => changePlaybackSpeed(rate)}
+                            title={`Speed ${rate}x (${key})`}
+                          >
+                            {rate}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>}
+              </>
             )}
           </div>
+
+          {/* Progress Bar (moved above thumbnails) */}
+          {selectedVideo && showControls && (
+            <div 
+              className="progress-bar-standalone"
+              ref={progressBarRef}
+              onClick={handleProgressClick}
+              onMouseMove={handleProgressHover}
+              onMouseLeave={handleProgressLeave}
+            >
+              <div className="progress-bar-bg">
+                <div 
+                  className="progress-bar-fill"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                />
+                {previewTime !== null && (
+                  <div 
+                    className="progress-bar-preview"
+                    style={{ left: `${(previewTime / duration) * 100}%` }}
+                  >
+                    <div className="preview-tooltip">
+                      <canvas ref={previewCanvasRef} className="preview-frame" />
+                      <div className="preview-time">{formatTime(previewTime)}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="progress-time">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+          )}
 
           {/* Thumbnail Videos */}
           <div className="thumbnail-container">
@@ -406,13 +838,91 @@ function App() {
             ))}
           </div>
 
-          {/* Clear Button */}
-          <button 
-            className="clear-button"
-            onClick={handleClearVideos}
-          >
-            Choose Other Videos
-          </button>
+          {/* Help Modal */}
+          {showHelpModal && (
+            <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>Help</h2>
+                  <button className="modal-close" onClick={() => setShowHelpModal(false)}>×</button>
+                </div>
+                <div className="modal-body">
+                  <div className="shortcut-section">
+                    <h3>Playback Controls</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Space</span>
+                      <span className="shortcut-desc">Play/Pause</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">←</span>
+                      <span className="shortcut-desc">Previous Frame</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">→</span>
+                      <span className="shortcut-desc">Next Frame</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Shift + ←</span>
+                      <span className="shortcut-desc">Jump Back 10 seconds</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Shift + →</span>
+                      <span className="shortcut-desc">Jump Forward 10 seconds</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Playback Speed</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Q</span>
+                      <span className="shortcut-desc">0.25x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">W</span>
+                      <span className="shortcut-desc">0.5x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">E</span>
+                      <span className="shortcut-desc">1x Speed (Normal)</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">R</span>
+                      <span className="shortcut-desc">1.25x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">T</span>
+                      <span className="shortcut-desc">1.5x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Y</span>
+                      <span className="shortcut-desc">2x Speed</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Camera Angles</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">1-9</span>
+                      <span className="shortcut-desc">Select Angle Directly</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">↑</span>
+                      <span className="shortcut-desc">Previous Angle</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">↓</span>
+                      <span className="shortcut-desc">Next Angle</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Interface</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Click Date/Time</span>
+                      <span className="shortcut-desc">Toggle Controls & Events</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

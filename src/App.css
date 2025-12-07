@@ -97,6 +97,20 @@
   background: #000;
 }
 
+.controls-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.controls-overlay > * {
+  pointer-events: auto;
+}
+
 .datetime-display {
   position: absolute;
   top: 20px;
@@ -195,6 +209,7 @@
   justify-content: center;
   background: #000;
   overflow: hidden;
+  position: relative;
 }
 
 .video-player {
@@ -206,6 +221,315 @@
 
 .video-player.main {
   max-height: 100%;
+}
+
+.custom-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%);
+  padding: 20px;
+  transition: opacity 0.3s ease;
+}
+
+.custom-controls:hover {
+  opacity: 1;
+}
+
+.progress-bar-container {
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+}
+
+.progress-bar-bg:hover {
+  height: 8px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #667eea;
+  border-radius: 3px;
+  transition: width 0.1s linear;
+  position: relative;
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.progress-bar-bg:hover .progress-bar-fill::after {
+  opacity: 1;
+}
+
+.progress-bar-preview {
+  position: absolute;
+  bottom: 20px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 100;
+}
+
+.preview-tooltip {
+  background: rgba(0, 0, 0, 0.95);
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.preview-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 10px solid rgba(0, 0, 0, 0.95);
+}
+
+.preview-frame {
+  display: block;
+  border-radius: 4px;
+  max-width: 160px;
+  height: auto;
+}
+
+.preview-time {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.progress-time {
+  display: flex;
+  justify-content: space-between;
+  color: white;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+  margin-top: 6px;
+}
+
+.controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.controls-left,
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.speed-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.speed-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-width: 50px;
+}
+
+.speed-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.speed-btn.active {
+  background: #667eea;
+  border-color: #667eea;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.progress-bar-standalone {
+  background: rgba(0, 0, 0, 0.9);
+  padding: 15px 20px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #1a1a1a;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  background: #1a1a1a;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header h2 {
+  color: white;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+  padding: 25px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.shortcut-section {
+  margin-bottom: 20px;
+}
+
+.shortcut-section:last-child {
+  margin-bottom: 0;
+}
+
+.shortcut-section h3 {
+  color: #667eea;
+  font-size: 1rem;
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.shortcut-key {
+  background: rgba(102, 126, 234, 0.2);
+  color: #667eea;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  min-width: 100px;
+  text-align: center;
+}
+
+.shortcut-desc {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  flex: 1;
+  text-align: right;
 }
 
 .thumbnail-container {
@@ -262,10 +586,18 @@
   pointer-events: none;
 }
 
-.clear-button {
+.top-buttons {
   position: absolute;
   top: 20px;
   right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.clear-button,
+.help-button {
   padding: 12px 24px;
   background: rgba(255, 255, 255, 0.9);
   color: #333;
@@ -276,16 +608,17 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  z-index: 10;
 }
 
-.clear-button:hover {
+.clear-button:hover,
+.help-button:hover {
   background: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
-.clear-button:active {
+.clear-button:active,
+.help-button:active {
   transform: translateY(0);
 }
 
@@ -304,9 +637,13 @@
     font-size: 1rem;
   }
 
-  .clear-button {
+  .top-buttons {
     top: 10px;
     right: 10px;
+  }
+
+  .clear-button,
+  .help-button {
     padding: 10px 20px;
     font-size: 0.9rem;
   }
@@ -352,5 +689,79 @@
   .thumbnail-label {
     font-size: 0.8rem;
     padding: 6px;
+  }
+
+  .custom-controls {
+    padding: 15px;
+  }
+
+  .controls-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .controls-left {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .controls-right {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .control-btn {
+    width: 35px;
+    height: 35px;
+  }
+
+  .control-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .speed-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    min-width: 45px;
+  }
+
+  .progress-time {
+    font-size: 0.75rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .modal-header {
+    padding: 15px 20px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .shortcut-section h3 {
+    font-size: 1rem;
+  }
+
+  .shortcut-item {
+    padding: 10px 0;
+  }
+
+  .shortcut-key {
+    min-width: 100px;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+
+  .shortcut-desc {
+    font-size: 0.85rem;
   }
 }
