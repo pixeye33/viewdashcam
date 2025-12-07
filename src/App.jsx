@@ -219,102 +219,113 @@ function App() {
     const newVideo = videos.find(v => v.angle === angle)
     if (!newVideo || !mainVideoRef.current) return
     
-    // Capture current state
+    // Capture current state from the visible video element
     const currentTime = mainVideoRef.current.currentTime
     const wasPlaying = !mainVideoRef.current.paused
     const currentRate = mainVideoRef.current.playbackRate
     
-    // Create buffer videos for both main and all thumbnails
-    const bufferVideos = {}
+    // Create hidden replacement videos
+    const hiddenVideos = {}
     
-    // Buffer for main video (switching to the new angle)
-    const mainBuffer = document.createElement('video')
-    mainBuffer.src = newVideo.url
-    mainBuffer.muted = false
-    mainBuffer.playbackRate = currentRate
-    mainBuffer.style.display = 'none'
-    document.body.appendChild(mainBuffer)
-    bufferVideos.main = mainBuffer
+    // Create hidden main video for the new angle
+    const hiddenMain = document.createElement('video')
+    hiddenMain.src = newVideo.url
+    hiddenMain.muted = false
+    hiddenMain.playbackRate = currentRate
+    hiddenMain.className = 'video-player main'
+    hiddenMain.style.visibility = 'hidden'
+    hiddenMain.style.position = 'absolute'
+    document.body.appendChild(hiddenMain)
+    hiddenVideos.main = hiddenMain
     
-    // Create buffers for all thumbnail videos
+    // Create hidden thumbnails for all angles
     videos.forEach(video => {
-      const thumbBuffer = document.createElement('video')
-      thumbBuffer.src = video.url
-      thumbBuffer.muted = true
-      thumbBuffer.playbackRate = currentRate
-      thumbBuffer.style.display = 'none'
-      document.body.appendChild(thumbBuffer)
-      bufferVideos[video.angle] = thumbBuffer
+      const hiddenThumb = document.createElement('video')
+      hiddenThumb.src = video.url
+      hiddenThumb.muted = true
+      hiddenThumb.playbackRate = currentRate
+      hiddenThumb.className = 'video-player thumbnail'
+      hiddenThumb.style.visibility = 'hidden'
+      hiddenThumb.style.position = 'absolute'
+      document.body.appendChild(hiddenThumb)
+      hiddenVideos[video.angle] = hiddenThumb
     })
     
-    let buffersReady = 0
-    const totalBuffers = Object.keys(bufferVideos).length
+    let videosReady = 0
+    const totalVideos = Object.keys(hiddenVideos).length
     
-    // Function called when all buffers are ready
+    // Function to swap the videos once all are ready
     const swapAllVideos = () => {
-      // Swap main video
-      const mainVideo = mainVideoRef.current
-      if (mainVideo) {
-        mainVideo.src = newVideo.url
-        mainVideo.playbackRate = currentRate
-        
-        const handleMainSeeked = () => {
-          if (wasPlaying) {
-            mainVideo.play().catch(() => {})
-          }
-          mainVideo.removeEventListener('seeked', handleMainSeeked)
-        }
-        
-        mainVideo.addEventListener('seeked', handleMainSeeked, { once: true })
-        mainVideo.currentTime = currentTime
+      // Get reference to current main video
+      const currentMainVideo = mainVideoRef.current
+      const currentMainParent = currentMainVideo.parentNode
+      
+      // Replace main video with the hidden one
+      const newMainVideo = hiddenVideos.main
+      newMainVideo.style.visibility = 'visible'
+      newMainVideo.style.position = 'static'
+      
+      // Add event listeners to the new main video
+      newMainVideo.addEventListener('play', handleMainVideoPlay)
+      newMainVideo.addEventListener('pause', handleMainVideoPause)
+      newMainVideo.addEventListener('timeupdate', handleMainVideoTimeUpdate)
+      newMainVideo.addEventListener('seeking', handleMainVideoSeeking)
+      newMainVideo.addEventListener('loadedmetadata', handleLoadedMetadata)
+      
+      // Replace in DOM
+      currentMainParent.replaceChild(newMainVideo, currentMainVideo)
+      
+      // Update ref
+      mainVideoRef.current = newMainVideo
+      
+      // Start playing if it was playing before
+      if (wasPlaying) {
+        newMainVideo.play().catch(() => {})
       }
       
-      // Swap all thumbnail videos
-      Object.entries(thumbnailRefsRef.current).forEach(([thumbAngle, thumbVideo]) => {
-        if (thumbVideo) {
-          const thumbVideoData = videos.find(v => v.angle === thumbAngle)
-          if (thumbVideoData) {
-            thumbVideo.src = thumbVideoData.url
-            thumbVideo.playbackRate = currentRate
-            
-            const handleThumbSeeked = () => {
-              if (wasPlaying && thumbVideo.paused) {
-                thumbVideo.play().catch(() => {})
-              } else if (!wasPlaying && !thumbVideo.paused) {
-                thumbVideo.pause()
-              }
-              thumbVideo.removeEventListener('seeked', handleThumbSeeked)
-            }
-            
-            thumbVideo.addEventListener('seeked', handleThumbSeeked, { once: true })
-            thumbVideo.currentTime = currentTime
+      // Replace all thumbnail videos
+      Object.entries(thumbnailRefsRef.current).forEach(([thumbAngle, currentThumbVideo]) => {
+        if (currentThumbVideo && hiddenVideos[thumbAngle]) {
+          const newThumbVideo = hiddenVideos[thumbAngle]
+          const thumbParent = currentThumbVideo.parentNode
+          
+          newThumbVideo.style.visibility = 'visible'
+          newThumbVideo.style.position = 'static'
+          
+          // Replace in DOM
+          thumbParent.replaceChild(newThumbVideo, currentThumbVideo)
+          
+          // Update ref
+          thumbnailRefsRef.current[thumbAngle] = newThumbVideo
+          
+          // Sync playback state
+          if (wasPlaying) {
+            newThumbVideo.play().catch(() => {})
           }
         }
       })
-      
-      // Clean up all buffer videos
-      Object.values(bufferVideos).forEach(buffer => buffer.remove())
     }
     
-    // Set up each buffer video
-    Object.entries(bufferVideos).forEach(([key, buffer]) => {
-      const handleBufferReady = () => {
-        buffer.currentTime = currentTime
+    // Set up each hidden video
+    Object.entries(hiddenVideos).forEach(([key, video]) => {
+      const handleLoaded = () => {
+        // Seek to the current time
+        video.currentTime = currentTime
       }
       
-      const handleBufferSeeked = () => {
-        buffersReady++
-        if (buffersReady === totalBuffers) {
-          // All buffers are ready, swap the videos
+      const handleSeeked = () => {
+        videosReady++
+        if (videosReady === totalVideos) {
+          // All videos are ready and seeked, perform the swap
           swapAllVideos()
         }
-        buffer.removeEventListener('loadeddata', handleBufferReady)
-        buffer.removeEventListener('seeked', handleBufferSeeked)
+        video.removeEventListener('loadeddata', handleLoaded)
+        video.removeEventListener('seeked', handleSeeked)
       }
       
-      buffer.addEventListener('loadeddata', handleBufferReady, { once: true })
-      buffer.addEventListener('seeked', handleBufferSeeked, { once: true })
-      buffer.load()
+      video.addEventListener('loadeddata', handleLoaded, { once: true })
+      video.addEventListener('seeked', handleSeeked, { once: true })
+      video.load()
     })
     
     // Update the selected angle immediately for UI feedback
@@ -706,6 +717,7 @@ function App() {
                   ref={mainVideoRef}
                   src={selectedVideo.url}
                   className="video-player main"
+                  autoPlay
                   onPlay={handleMainVideoPlay}
                   onPause={handleMainVideoPause}
                   onTimeUpdate={handleMainVideoTimeUpdate}
