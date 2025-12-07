@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 
 function App() {
@@ -16,13 +16,14 @@ function App() {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
+  const [pendingAngleSwitch, setPendingAngleSwitch] = useState(null)
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
   const progressBarRef = useRef(null)
   const previewVideoRef = useRef(null)
   const previewCanvasRef = useRef(null)
-  const bufferVideoRef = useRef(null) // Hidden video for buffering angle switches
+  const hoverThrottleRef = useRef(null)
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -36,7 +37,7 @@ function App() {
   }
 
   // Format datetime for display based on browser locale
-  const formatDateTime = (dateTimeStr, offsetSeconds = 0) => {
+  const formatDateTime = useCallback((dateTimeStr, offsetSeconds = 0) => {
     const [datePart, timePart] = dateTimeStr.split('_')
     const [year, month, day] = datePart.split('-')
     const [hours, minutes, seconds] = timePart.split('-').map(Number)
@@ -54,15 +55,15 @@ function App() {
       second: '2-digit',
       hour12: false
     })
-  }
+  }, [])
 
   // Format angle name for display (e.g., "left_repeater" -> "Left Repeater")
-  const formatAngleName = (angle) => {
+  const formatAngleName = useCallback((angle) => {
     return angle
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
-  }
+  }, [])
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -211,7 +212,7 @@ function App() {
     setIsPlaying(true)
   }
 
-  const handleThumbnailClick = (angle) => {
+  const handleThumbnailClick = useCallback((angle) => {
     // Don't allow clicking on the currently selected angle
     if (angle === selectedAngle) return
     
@@ -222,39 +223,10 @@ function App() {
     const wasPlaying = !mainVideoRef.current.paused
     const currentRate = mainVideoRef.current.playbackRate
     
-    // Update the selected angle
+    // Store the pending switch data and update the angle
+    setPendingAngleSwitch({ currentTime, wasPlaying, currentRate })
     setSelectedAngle(angle)
-    
-    // After React re-renders with the new angle, restore the video state
-    // We'll use a small timeout to ensure the video element has been updated
-    setTimeout(() => {
-      if (mainVideoRef.current) {
-        mainVideoRef.current.currentTime = currentTime
-        mainVideoRef.current.playbackRate = currentRate
-        
-        // Restore playing state after seeking completes
-        const handleSeeked = () => {
-          if (wasPlaying && mainVideoRef.current) {
-            mainVideoRef.current.play().catch(() => {})
-          }
-          mainVideoRef.current?.removeEventListener('seeked', handleSeeked)
-        }
-        
-        mainVideoRef.current.addEventListener('seeked', handleSeeked, { once: true })
-      }
-      
-      // Sync thumbnails
-      Object.values(thumbnailRefsRef.current).forEach(ref => {
-        if (ref) {
-          ref.currentTime = currentTime
-          ref.playbackRate = currentRate
-          if (wasPlaying) {
-            ref.play().catch(() => {})
-          }
-        }
-      })
-    }, 0)
-  }
+  }, [selectedAngle])
 
   // Synchronize all videos when main video plays/pauses
   const handleMainVideoPlay = () => {
@@ -360,8 +332,15 @@ function App() {
     mainVideoRef.current.currentTime = newTime
   }
 
-  const handleProgressHover = (e) => {
+  const handleProgressHover = useCallback((e) => {
     if (!progressBarRef.current) return
+    
+    // Throttle hover events to improve performance
+    if (hoverThrottleRef.current) return
+    
+    hoverThrottleRef.current = setTimeout(() => {
+      hoverThrottleRef.current = null
+    }, 50) // Update every 50ms max
     
     const rect = progressBarRef.current.getBoundingClientRect()
     const pos = (e.clientX - rect.left) / rect.width
@@ -377,14 +356,19 @@ function App() {
     } else {
       setPreviewTime(null)
     }
-  }
+  }, [duration])
 
-  const handleProgressLeave = () => {
+  const handleProgressLeave = useCallback(() => {
+    // Clear any pending throttle
+    if (hoverThrottleRef.current) {
+      clearTimeout(hoverThrottleRef.current)
+      hoverThrottleRef.current = null
+    }
     setPreviewTime(null)
-  }
+  }, [])
 
   // Capture frame to canvas when preview video seeks
-  const handlePreviewSeeked = () => {
+  const handlePreviewSeeked = useCallback(() => {
     if (previewVideoRef.current && previewCanvasRef.current) {
       const canvas = previewCanvasRef.current
       const video = previewVideoRef.current
@@ -397,7 +381,7 @@ function App() {
       // Draw current frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     }
-  }
+  }, [])
 
   const handleEventSwitch = (eventKey) => {
     if (eventKey === selectedEvent) return
@@ -436,6 +420,48 @@ function App() {
     setPlaybackRate(1)
     setDuration(0)
   }
+
+  // Cleanup throttle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverThrottleRef.current) {
+        clearTimeout(hoverThrottleRef.current)
+      }
+    }
+  }, [])
+
+  // Handle angle switching after re-render
+  useEffect(() => {
+    if (!pendingAngleSwitch || !mainVideoRef.current) return
+    
+    const { currentTime, wasPlaying, currentRate } = pendingAngleSwitch
+    
+    mainVideoRef.current.currentTime = currentTime
+    mainVideoRef.current.playbackRate = currentRate
+    
+    // Restore playing state after seeking completes
+    const handleSeeked = () => {
+      if (wasPlaying && mainVideoRef.current) {
+        mainVideoRef.current.play().catch(() => {})
+      }
+    }
+    
+    mainVideoRef.current.addEventListener('seeked', handleSeeked, { once: true })
+    
+    // Sync thumbnails
+    Object.values(thumbnailRefsRef.current).forEach(ref => {
+      if (ref) {
+        ref.currentTime = currentTime
+        ref.playbackRate = currentRate
+        if (wasPlaying) {
+          ref.play().catch(() => {})
+        }
+      }
+    })
+    
+    // Clear the pending switch
+    setPendingAngleSwitch(null)
+  }, [pendingAngleSwitch])
 
   // Keyboard shortcuts
   useEffect(() => {
