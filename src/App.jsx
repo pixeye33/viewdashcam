@@ -215,121 +215,45 @@ function App() {
     // Don't allow clicking on the currently selected angle
     if (angle === selectedAngle) return
     
-    // Get the video we're switching to
-    const newVideo = videos.find(v => v.angle === angle)
-    if (!newVideo || !mainVideoRef.current) return
+    // Capture current state before switching
+    if (!mainVideoRef.current) return
     
-    // Capture current state from the visible video element
     const currentTime = mainVideoRef.current.currentTime
     const wasPlaying = !mainVideoRef.current.paused
     const currentRate = mainVideoRef.current.playbackRate
     
-    // Create hidden replacement videos
-    const hiddenVideos = {}
+    // Update the selected angle
+    setSelectedAngle(angle)
     
-    // Create hidden main video for the new angle
-    const hiddenMain = document.createElement('video')
-    hiddenMain.src = newVideo.url
-    hiddenMain.muted = false
-    hiddenMain.playbackRate = currentRate
-    hiddenMain.className = 'video-player main'
-    hiddenMain.style.visibility = 'hidden'
-    hiddenMain.style.position = 'absolute'
-    document.body.appendChild(hiddenMain)
-    hiddenVideos.main = hiddenMain
-    
-    // Create hidden thumbnails for all angles
-    videos.forEach(video => {
-      const hiddenThumb = document.createElement('video')
-      hiddenThumb.src = video.url
-      hiddenThumb.muted = true
-      hiddenThumb.playbackRate = currentRate
-      hiddenThumb.className = 'video-player thumbnail'
-      hiddenThumb.style.visibility = 'hidden'
-      hiddenThumb.style.position = 'absolute'
-      document.body.appendChild(hiddenThumb)
-      hiddenVideos[video.angle] = hiddenThumb
-    })
-    
-    let videosReady = 0
-    const totalVideos = Object.keys(hiddenVideos).length
-    
-    // Function to swap the videos once all are ready
-    const swapAllVideos = () => {
-      // Get reference to current main video
-      const currentMainVideo = mainVideoRef.current
-      const currentMainParent = currentMainVideo.parentNode
-      
-      // Replace main video with the hidden one
-      const newMainVideo = hiddenVideos.main
-      newMainVideo.style.visibility = 'visible'
-      newMainVideo.style.position = 'static'
-      
-      // Add event listeners to the new main video
-      newMainVideo.addEventListener('play', handleMainVideoPlay)
-      newMainVideo.addEventListener('pause', handleMainVideoPause)
-      newMainVideo.addEventListener('timeupdate', handleMainVideoTimeUpdate)
-      newMainVideo.addEventListener('seeking', handleMainVideoSeeking)
-      newMainVideo.addEventListener('loadedmetadata', handleLoadedMetadata)
-      
-      // Replace in DOM
-      currentMainParent.replaceChild(newMainVideo, currentMainVideo)
-      
-      // Update ref
-      mainVideoRef.current = newMainVideo
-      
-      // Start playing if it was playing before
-      if (wasPlaying) {
-        newMainVideo.play().catch(() => {})
+    // After React re-renders with the new angle, restore the video state
+    // We'll use a small timeout to ensure the video element has been updated
+    setTimeout(() => {
+      if (mainVideoRef.current) {
+        mainVideoRef.current.currentTime = currentTime
+        mainVideoRef.current.playbackRate = currentRate
+        
+        // Restore playing state after seeking completes
+        const handleSeeked = () => {
+          if (wasPlaying && mainVideoRef.current) {
+            mainVideoRef.current.play().catch(() => {})
+          }
+          mainVideoRef.current?.removeEventListener('seeked', handleSeeked)
+        }
+        
+        mainVideoRef.current.addEventListener('seeked', handleSeeked, { once: true })
       }
       
-      // Replace all thumbnail videos
-      Object.entries(thumbnailRefsRef.current).forEach(([thumbAngle, currentThumbVideo]) => {
-        if (currentThumbVideo && hiddenVideos[thumbAngle]) {
-          const newThumbVideo = hiddenVideos[thumbAngle]
-          const thumbParent = currentThumbVideo.parentNode
-          
-          newThumbVideo.style.visibility = 'visible'
-          newThumbVideo.style.position = 'static'
-          
-          // Replace in DOM
-          thumbParent.replaceChild(newThumbVideo, currentThumbVideo)
-          
-          // Update ref
-          thumbnailRefsRef.current[thumbAngle] = newThumbVideo
-          
-          // Sync playback state
+      // Sync thumbnails
+      Object.values(thumbnailRefsRef.current).forEach(ref => {
+        if (ref) {
+          ref.currentTime = currentTime
+          ref.playbackRate = currentRate
           if (wasPlaying) {
-            newThumbVideo.play().catch(() => {})
+            ref.play().catch(() => {})
           }
         }
       })
-    }
-    
-    // Set up each hidden video
-    Object.entries(hiddenVideos).forEach(([key, video]) => {
-      const handleLoaded = () => {
-        // Seek to the current time
-        video.currentTime = currentTime
-      }
-      
-      const handleSeeked = () => {
-        videosReady++
-        if (videosReady === totalVideos) {
-          // All videos are ready and seeked, perform the swap
-          swapAllVideos()
-        }
-        video.removeEventListener('loadeddata', handleLoaded)
-        video.removeEventListener('seeked', handleSeeked)
-      }
-      
-      video.addEventListener('loadeddata', handleLoaded, { once: true })
-      video.addEventListener('seeked', handleSeeked, { once: true })
-      video.load()
-    })
-    
-    // Update the selected angle immediately for UI feedback
-    setSelectedAngle(angle)
+    }, 0)
   }
 
   // Synchronize all videos when main video plays/pauses
