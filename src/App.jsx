@@ -655,7 +655,6 @@ function App() {
                 <video
                   ref={previewVideoRef}
                   src={selectedVideo.url}
-                  className="preview-video-hidden"
                   muted
                   onSeeked={handlePreviewSeeked}
                   style={{ display: 'none' }}
