@@ -10,6 +10,8 @@ function App() {
   const [allEvents, setAllEvents] = useState({}) // Store all events grouped by datetime
   const [selectedEvent, setSelectedEvent] = useState(null) // Currently selected event datetime
   const [showEventsPanel, setShowEventsPanel] = useState(true) // Events panel visibility
+  const [showControls, setShowControls] = useState(true) // Media controls visibility
+  const [showHelpModal, setShowHelpModal] = useState(false) // Help modal visibility
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [duration, setDuration] = useState(0)
@@ -531,7 +533,10 @@ function App() {
           {eventDateTime && (
             <div 
               className="datetime-display"
-              onClick={() => setShowEventsPanel(!showEventsPanel)}
+              onClick={() => {
+                setShowEventsPanel(!showEventsPanel)
+                setShowControls(!showControls)
+              }}
               style={{ cursor: 'pointer' }}
             >
               {formatDateTime(eventDateTime, Math.floor(currentTime))}
@@ -586,38 +591,7 @@ function App() {
                 />
 
                 {/* Custom Controls */}
-                <div className="custom-controls">
-                  {/* Progress Bar */}
-                  <div 
-                    className="progress-bar-container"
-                    ref={progressBarRef}
-                    onClick={handleProgressClick}
-                    onMouseMove={handleProgressHover}
-                    onMouseLeave={handleProgressLeave}
-                  >
-                    <div className="progress-bar-bg">
-                      <div 
-                        className="progress-bar-fill"
-                        style={{ width: `${(currentTime / duration) * 100}%` }}
-                      />
-                      {previewTime !== null && (
-                        <div 
-                          className="progress-bar-preview"
-                          style={{ left: `${(previewTime / duration) * 100}%` }}
-                        >
-                          <div className="preview-tooltip">
-                            <canvas ref={previewCanvasRef} className="preview-frame" />
-                            <div className="preview-time">{formatTime(previewTime)}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="progress-time">
-                      <span>{formatTime(currentTime)}</span>
-                      <span>{formatTime(duration)}</span>
-                    </div>
-                  </div>
-
+                {showControls && <div className="custom-controls">
                   {/* Control Buttons */}
                   <div className="controls-row">
                     <div className="controls-left">
@@ -708,20 +682,43 @@ function App() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Keyboard Shortcuts Help */}
-                  <div className="keyboard-hints">
-                    <span>Space: Play/Pause</span>
-                    <span>←/→: Frame</span>
-                    <span>Shift+←/→: 10s</span>
-                    <span>1-9: Select Angle</span>
-                    <span>↑/↓: Cycle Angle</span>
-                    <span>Q/W/E/R/T/Y: Speed</span>
-                  </div>
-                </div>
+                </div>}
               </>
             )}
           </div>
+
+          {/* Progress Bar (moved above thumbnails) */}
+          {selectedVideo && showControls && (
+            <div 
+              className="progress-bar-standalone"
+              ref={progressBarRef}
+              onClick={handleProgressClick}
+              onMouseMove={handleProgressHover}
+              onMouseLeave={handleProgressLeave}
+            >
+              <div className="progress-bar-bg">
+                <div 
+                  className="progress-bar-fill"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                />
+                {previewTime !== null && (
+                  <div 
+                    className="progress-bar-preview"
+                    style={{ left: `${(previewTime / duration) * 100}%` }}
+                  >
+                    <div className="preview-tooltip">
+                      <canvas ref={previewCanvasRef} className="preview-frame" />
+                      <div className="preview-time">{formatTime(previewTime)}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="progress-time">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+          )}
 
           {/* Thumbnail Videos */}
           <div className="thumbnail-container">
@@ -746,13 +743,100 @@ function App() {
             ))}
           </div>
 
-          {/* Clear Button */}
-          <button 
-            className="clear-button"
-            onClick={handleClearVideos}
-          >
-            Choose Other Videos
-          </button>
+          {/* Clear Button and Help Button */}
+          <div className="top-buttons">
+            <button 
+              className="clear-button"
+              onClick={handleClearVideos}
+            >
+              Choose Other Videos
+            </button>
+            <button 
+              className="help-button"
+              onClick={() => setShowHelpModal(true)}
+            >
+              Keyboard Shortcuts
+            </button>
+          </div>
+
+          {/* Help Modal */}
+          {showHelpModal && (
+            <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>Keyboard Shortcuts</h2>
+                  <button className="modal-close" onClick={() => setShowHelpModal(false)}>×</button>
+                </div>
+                <div className="modal-body">
+                  <div className="shortcut-section">
+                    <h3>Playback Controls</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Space</span>
+                      <span className="shortcut-desc">Play/Pause</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">←</span>
+                      <span className="shortcut-desc">Previous Frame</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">→</span>
+                      <span className="shortcut-desc">Next Frame</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Shift + ←</span>
+                      <span className="shortcut-desc">Jump Back 10 seconds</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Shift + →</span>
+                      <span className="shortcut-desc">Jump Forward 10 seconds</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Playback Speed</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Q</span>
+                      <span className="shortcut-desc">0.25x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">W</span>
+                      <span className="shortcut-desc">0.5x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">E</span>
+                      <span className="shortcut-desc">1x Speed (Normal)</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">R</span>
+                      <span className="shortcut-desc">1.25x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">T</span>
+                      <span className="shortcut-desc">1.5x Speed</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Y</span>
+                      <span className="shortcut-desc">2x Speed</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Camera Angles</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">1-9</span>
+                      <span className="shortcut-desc">Select Angle Directly</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">↑</span>
+                      <span className="shortcut-desc">Previous Angle</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">↓</span>
+                      <span className="shortcut-desc">Next Angle</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
