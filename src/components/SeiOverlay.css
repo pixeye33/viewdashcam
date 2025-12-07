@@ -1,6 +1,6 @@
 .sei-overlay {
   position: absolute;
-  top: 60px;
+  top: 150px;
   right: 10px;
   display: flex;
   flex-direction: column;
@@ -205,7 +205,6 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .sei-overlay {
-    top: 50px;
     right: 5px;
     max-width: 160px;
     gap: 6px;
