@@ -10,9 +10,14 @@ function App() {
   const [allEvents, setAllEvents] = useState({}) // Store all events grouped by datetime
   const [selectedEvent, setSelectedEvent] = useState(null) // Currently selected event datetime
   const [showEventsPanel, setShowEventsPanel] = useState(true) // Events panel visibility
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
+  const [duration, setDuration] = useState(0)
+  const [previewTime, setPreviewTime] = useState(null)
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
+  const progressBarRef = useRef(null)
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -213,6 +218,7 @@ function App() {
 
   // Synchronize all videos when main video plays/pauses
   const handleMainVideoPlay = () => {
+    setIsPlaying(true)
     Object.values(thumbnailRefsRef.current).forEach(ref => {
       if (ref && ref.paused) {
         ref.play().catch(() => {})
@@ -221,11 +227,18 @@ function App() {
   }
 
   const handleMainVideoPause = () => {
+    setIsPlaying(false)
     Object.values(thumbnailRefsRef.current).forEach(ref => {
       if (ref && !ref.paused) {
         ref.pause()
       }
     })
+  }
+
+  const handleLoadedMetadata = () => {
+    if (mainVideoRef.current) {
+      setDuration(mainVideoRef.current.duration)
+    }
   }
 
   // Synchronize time across all videos
@@ -252,6 +265,67 @@ function App() {
         ref.currentTime = currentTime
       }
     })
+  }
+
+  // Custom playback controls
+  const togglePlayPause = () => {
+    if (mainVideoRef.current) {
+      if (isPlaying) {
+        mainVideoRef.current.pause()
+      } else {
+        mainVideoRef.current.play()
+      }
+    }
+  }
+
+  const seekToFrame = (forward = true) => {
+    if (mainVideoRef.current) {
+      const frameRate = 30 // Assume 30fps
+      const frameTime = 1 / frameRate
+      const newTime = mainVideoRef.current.currentTime + (forward ? frameTime : -frameTime)
+      mainVideoRef.current.currentTime = Math.max(0, Math.min(newTime, duration))
+    }
+  }
+
+  const jumpTime = (seconds) => {
+    if (mainVideoRef.current) {
+      const newTime = mainVideoRef.current.currentTime + seconds
+      mainVideoRef.current.currentTime = Math.max(0, Math.min(newTime, duration))
+    }
+  }
+
+  const changePlaybackSpeed = (rate) => {
+    setPlaybackRate(rate)
+    if (mainVideoRef.current) {
+      mainVideoRef.current.playbackRate = rate
+    }
+    Object.values(thumbnailRefsRef.current).forEach(ref => {
+      if (ref) {
+        ref.playbackRate = rate
+      }
+    })
+  }
+
+  const handleProgressClick = (e) => {
+    if (!progressBarRef.current || !mainVideoRef.current) return
+    
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pos = (e.clientX - rect.left) / rect.width
+    const newTime = pos * duration
+    mainVideoRef.current.currentTime = newTime
+  }
+
+  const handleProgressHover = (e) => {
+    if (!progressBarRef.current) return
+    
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pos = (e.clientX - rect.left) / rect.width
+    const hoverTime = pos * duration
+    setPreviewTime(hoverTime >= 0 && hoverTime <= duration ? hoverTime : null)
+  }
+
+  const handleProgressLeave = () => {
+    setPreviewTime(null)
   }
 
   const handleEventSwitch = (eventKey) => {
@@ -287,6 +361,75 @@ function App() {
     setCurrentTime(0)
     setAllEvents({})
     setSelectedEvent(null)
+    setIsPlaying(false)
+    setPlaybackRate(1)
+    setDuration(0)
+  }
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger shortcuts if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      
+      // Playback controls
+      if (e.code === 'Space') {
+        e.preventDefault()
+        togglePlayPause()
+      } else if (e.code === 'ArrowLeft' && !e.shiftKey) {
+        e.preventDefault()
+        seekToFrame(false)
+      } else if (e.code === 'ArrowRight' && !e.shiftKey) {
+        e.preventDefault()
+        seekToFrame(true)
+      } else if (e.code === 'ArrowLeft' && e.shiftKey) {
+        e.preventDefault()
+        jumpTime(-10)
+      } else if (e.code === 'ArrowRight' && e.shiftKey) {
+        e.preventDefault()
+        jumpTime(10)
+      } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+        e.preventDefault()
+        changePlaybackSpeed(0.5)
+      } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+        e.preventDefault()
+        changePlaybackSpeed(1)
+      } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+        e.preventDefault()
+        changePlaybackSpeed(1.25)
+      } else if (e.code === 'Digit4' || e.code === 'Numpad4') {
+        e.preventDefault()
+        changePlaybackSpeed(1.5)
+      } else if (e.code === 'Digit5' || e.code === 'Numpad5') {
+        e.preventDefault()
+        changePlaybackSpeed(2)
+      }
+      
+      // Angle switching (only if videos are loaded)
+      if (videos.length > 0) {
+        const currentIndex = videos.findIndex(v => v.angle === selectedAngle)
+        if (e.code === 'ArrowUp') {
+          e.preventDefault()
+          const prevIndex = (currentIndex - 1 + videos.length) % videos.length
+          handleThumbnailClick(videos[prevIndex].angle)
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault()
+          const nextIndex = (currentIndex + 1) % videos.length
+          handleThumbnailClick(videos[nextIndex].angle)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isPlaying, videos, selectedAngle, duration])
+
+  // Format time for display
+  const formatTime = (seconds) => {
+    if (isNaN(seconds)) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
@@ -367,19 +510,147 @@ function App() {
           {/* Main Video Player */}
           <div className="main-player">
             {selectedVideo && (
-              <video
-                ref={mainVideoRef}
-                src={selectedVideo.url}
-                controls
-                autoPlay
-                className="video-player main"
-                onPlay={handleMainVideoPlay}
-                onPause={handleMainVideoPause}
-                onTimeUpdate={handleMainVideoTimeUpdate}
-                onSeeking={handleMainVideoSeeking}
-              >
-                Your browser does not support the video tag.
-              </video>
+              <>
+                <video
+                  ref={mainVideoRef}
+                  src={selectedVideo.url}
+                  autoPlay
+                  className="video-player main"
+                  onPlay={handleMainVideoPlay}
+                  onPause={handleMainVideoPause}
+                  onTimeUpdate={handleMainVideoTimeUpdate}
+                  onSeeking={handleMainVideoSeeking}
+                  onLoadedMetadata={handleLoadedMetadata}
+                >
+                  Your browser does not support the video tag.
+                </video>
+
+                {/* Custom Controls */}
+                <div className="custom-controls">
+                  {/* Progress Bar */}
+                  <div 
+                    className="progress-bar-container"
+                    ref={progressBarRef}
+                    onClick={handleProgressClick}
+                    onMouseMove={handleProgressHover}
+                    onMouseLeave={handleProgressLeave}
+                  >
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill"
+                        style={{ width: `${(currentTime / duration) * 100}%` }}
+                      />
+                      {previewTime !== null && (
+                        <div 
+                          className="progress-bar-preview"
+                          style={{ left: `${(previewTime / duration) * 100}%` }}
+                        >
+                          <div className="preview-tooltip">
+                            {formatTime(previewTime)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="progress-time">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
+                    </div>
+                  </div>
+
+                  {/* Control Buttons */}
+                  <div className="controls-row">
+                    <div className="controls-left">
+                      {/* Play/Pause */}
+                      <button 
+                        className="control-btn"
+                        onClick={togglePlayPause}
+                        title="Play/Pause (Space)"
+                      >
+                        {isPlaying ? (
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        )}
+                      </button>
+
+                      {/* Previous Frame */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => seekToFrame(false)}
+                        title="Previous Frame (←)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M11.5 12L20 6v12l-8.5-6zM11 6H9v12h2V6z"/>
+                        </svg>
+                      </button>
+
+                      {/* Next Frame */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => seekToFrame(true)}
+                        title="Next Frame (→)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+                        </svg>
+                      </button>
+
+                      {/* Jump Back 10s */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => jumpTime(-10)}
+                        title="Jump Back 10s (Shift+←)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                          <text x="9" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
+                        </svg>
+                      </button>
+
+                      {/* Jump Forward 10s */}
+                      <button 
+                        className="control-btn"
+                        onClick={() => jumpTime(10)}
+                        title="Jump Forward 10s (Shift+→)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                          <text x="9.5" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="controls-right">
+                      {/* Playback Speed */}
+                      <div className="speed-controls">
+                        {[0.5, 1, 1.25, 1.5, 2].map((rate) => (
+                          <button
+                            key={rate}
+                            className={`speed-btn ${playbackRate === rate ? 'active' : ''}`}
+                            onClick={() => changePlaybackSpeed(rate)}
+                            title={`Speed ${rate}x (${[0.5, 1, 1.25, 1.5, 2].indexOf(rate) + 1})`}
+                          >
+                            {rate}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Keyboard Shortcuts Help */}
+                  <div className="keyboard-hints">
+                    <span>Space: Play/Pause</span>
+                    <span>←/→: Frame</span>
+                    <span>Shift+←/→: 10s</span>
+                    <span>↑/↓: Switch Angle</span>
+                    <span>1-5: Speed</span>
+                  </div>
+                </div>
+              </>
             )}
           </div>
 
