@@ -211,11 +211,6 @@ function App() {
   }
 
   const handleThumbnailClick = (angle) => {
-    // Store the current playing state and time before switching
-    if (mainVideoRef.current) {
-      const currentTimeSnapshot = mainVideoRef.current.currentTime
-      setCurrentTime(currentTimeSnapshot)
-    }
     setSelectedAngle(angle)
   }
 
@@ -489,16 +484,22 @@ function App() {
   useEffect(() => {
     if (mainVideoRef.current && selectedVideo) {
       const video = mainVideoRef.current
+      const previousVideo = mainVideoRef.current
+      
+      // Capture the current state from the previous video before switching
+      const savedTime = previousVideo.currentTime
+      const savedPlaying = !previousVideo.paused
+      const savedRate = previousVideo.playbackRate
       
       const handleLoadedData = () => {
         // Set playback rate
-        video.playbackRate = playbackRate
+        video.playbackRate = savedRate
         
         // Restore current time
-        video.currentTime = currentTime
+        video.currentTime = savedTime
         
         // Handle play/pause state
-        if (isPlaying) {
+        if (savedPlaying) {
           video.play().catch(() => {})
         } else {
           video.pause()
@@ -517,7 +518,7 @@ function App() {
         video.removeEventListener('loadeddata', handleLoadedData)
       }
     }
-  }, [selectedAngle, selectedVideo, currentTime, isPlaying, playbackRate])
+  }, [selectedAngle, selectedVideo])
 
   return (
     <div 
