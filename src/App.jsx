@@ -398,15 +398,29 @@ function App() {
     if (eventKey === selectedEvent) return
     
     const eventVideos = allEvents[eventKey]
+    
+    // Pause current video before switching to prevent race condition
+    if (mainVideoRef.current) {
+      mainVideoRef.current.pause()
+    }
+    
+    // Pause all thumbnail videos as well
+    Object.values(thumbnailRefsRef.current).forEach(ref => {
+      if (ref && !ref.paused) {
+        ref.pause()
+      }
+    })
+    
+    // Update state to reflect paused state
+    setIsPlaying(false)
     setSelectedEvent(eventKey)
     setVideos(eventVideos)
     setEventDateTime(eventKey)
     setCurrentTime(0)
     
-    // Reset video playback
+    // Reset video playback position
     if (mainVideoRef.current) {
       mainVideoRef.current.currentTime = 0
-      mainVideoRef.current.pause()
     }
     
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
