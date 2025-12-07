@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "A frontend-only React app for playing videos via drag-and-drop",
   "dependencies": {
+    "protobufjs": "^7.4.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"
   },

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
+import { SeiOverlay } from './components/SeiOverlay'
+import { useSeiData } from './hooks/useSeiData'
 
 function App() {
   const [videos, setVideos] = useState([])
@@ -24,6 +26,15 @@ function App() {
   const previewVideoRef = useRef(null)
   const previewCanvasRef = useRef(null)
   const hoverThrottleRef = useRef(null)
+
+  // Get front video file for SEI extraction (only from front angle)
+  const frontVideo = useMemo(() => {
+    const frontVid = videos.find(v => v.angle.toLowerCase() === 'front')
+    return frontVid?.file || null
+  }, [videos])
+
+  // SEI data hook - extracts and provides SEI data based on current time
+  const { seiData, isLoading: seiLoading, error: seiError } = useSeiData(frontVideo, currentTime)
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -684,6 +695,15 @@ function App() {
                   onSeeked={handlePreviewSeeked}
                   style={{ display: 'none' }}
                 />
+
+                {/* SEI Overlay - only show for front angle */}
+                {selectedAngle?.toLowerCase() === 'front' && (
+                  <SeiOverlay 
+                    seiData={seiData} 
+                    isLoading={seiLoading} 
+                    error={seiError} 
+                  />
+                )}
 
                  {/* Custom Controls - Part of overlay */}
                 {showControls && <div className="custom-controls">
