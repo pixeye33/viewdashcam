@@ -211,6 +211,18 @@ function App() {
   }
 
   const handleThumbnailClick = (angle) => {
+    // Capture current state before switching
+    if (mainVideoRef.current) {
+      const video = mainVideoRef.current
+      // Store the current state in a ref so we can restore it after the angle change
+      const stateToRestore = {
+        time: video.currentTime,
+        playing: !video.paused,
+        rate: video.playbackRate
+      }
+      // Use a data attribute to store the state temporarily
+      video.dataset.pendingRestore = JSON.stringify(stateToRestore)
+    }
     setSelectedAngle(angle)
   }
 
@@ -484,25 +496,32 @@ function App() {
   useEffect(() => {
     if (mainVideoRef.current && selectedVideo) {
       const video = mainVideoRef.current
-      const previousVideo = mainVideoRef.current
-      
-      // Capture the current state from the previous video before switching
-      const savedTime = previousVideo.currentTime
-      const savedPlaying = !previousVideo.paused
-      const savedRate = previousVideo.playbackRate
       
       const handleLoadedData = () => {
-        // Set playback rate
-        video.playbackRate = savedRate
-        
-        // Restore current time
-        video.currentTime = savedTime
-        
-        // Handle play/pause state
-        if (savedPlaying) {
-          video.play().catch(() => {})
-        } else {
-          video.pause()
+        // Restore state from the data attribute if it exists
+        const pendingRestore = video.dataset.pendingRestore
+        if (pendingRestore) {
+          try {
+            const state = JSON.parse(pendingRestore)
+            
+            // Set playback rate
+            video.playbackRate = state.rate
+            
+            // Restore current time
+            video.currentTime = state.time
+            
+            // Handle play/pause state
+            if (state.playing) {
+              video.play().catch(() => {})
+            } else {
+              video.pause()
+            }
+            
+            // Clear the pending restore data
+            delete video.dataset.pendingRestore
+          } catch (e) {
+            // If parsing fails, just ignore
+          }
         }
       }
       
