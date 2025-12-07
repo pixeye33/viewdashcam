@@ -16,6 +16,7 @@ function App() {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
+  const [isAngleSwitching, setIsAngleSwitching] = useState(false)
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
@@ -223,6 +224,8 @@ function App() {
       // Use a data attribute to store the state temporarily
       video.dataset.pendingRestore = JSON.stringify(stateToRestore)
     }
+    // Set flag to hide video during transition
+    setIsAngleSwitching(true)
     setSelectedAngle(angle)
   }
 
@@ -507,21 +510,35 @@ function App() {
             // Set playback rate
             video.playbackRate = state.rate
             
-            // Restore current time
+            // Restore current time - use seeked event to know when ready
             video.currentTime = state.time
             
-            // Handle play/pause state
-            if (state.playing) {
-              video.play().catch(() => {})
-            } else {
-              video.pause()
+            // Wait for seek to complete before showing video and handling play state
+            const handleSeeked = () => {
+              // Now that we're at the right time, show the video
+              setIsAngleSwitching(false)
+              
+              // Handle play/pause state
+              if (state.playing) {
+                video.play().catch(() => {})
+              } else {
+                video.pause()
+              }
+              
+              video.removeEventListener('seeked', handleSeeked)
             }
+            
+            video.addEventListener('seeked', handleSeeked, { once: true })
             
             // Clear the pending restore data
             delete video.dataset.pendingRestore
           } catch (e) {
-            // If parsing fails, just ignore
+            // If parsing fails, just show the video anyway
+            setIsAngleSwitching(false)
           }
+        } else {
+          // No pending restore, just show the video
+          setIsAngleSwitching(false)
         }
       }
       
@@ -663,6 +680,7 @@ function App() {
                   onTimeUpdate={handleMainVideoTimeUpdate}
                   onSeeking={handleMainVideoSeeking}
                   onLoadedMetadata={handleLoadedMetadata}
+                  style={{ opacity: isAngleSwitching ? 0 : 1, transition: 'opacity 0.1s' }}
                 >
                   Your browser does not support the video tag.
                 </video>
