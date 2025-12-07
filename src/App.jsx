@@ -208,8 +208,8 @@ function App() {
     const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
     setSelectedAngle(frontVideo ? frontVideo.angle : oldestEventVideos[0].angle)
     
-    // Start playing the video
-    setIsPlaying(true)
+    // Don't auto-play - let user start playback manually
+    setIsPlaying(false)
   }
 
   const handleThumbnailClick = useCallback((angle) => {
@@ -667,7 +667,6 @@ function App() {
                   ref={mainVideoRef}
                   src={selectedVideo.url}
                   className="video-player main"
-                  autoPlay
                   onPlay={handleMainVideoPlay}
                   onPause={handleMainVideoPause}
                   onTimeUpdate={handleMainVideoTimeUpdate}
