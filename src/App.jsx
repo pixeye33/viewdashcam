@@ -208,16 +208,27 @@ function App() {
   }
 
   const handleThumbnailClick = (angle) => {
+    // Store the current playing state before switching
+    const wasPlaying = isPlaying
+    const currentTimeSnapshot = mainVideoRef.current ? mainVideoRef.current.currentTime : 0
+    
     setSelectedAngle(angle)
-    // Sync the new main video to current time
-    if (mainVideoRef.current) {
-      const currentTime = mainVideoRef.current.currentTime
-      setTimeout(() => {
-        if (mainVideoRef.current) {
-          mainVideoRef.current.currentTime = currentTime
+    
+    // Sync the new main video to current time and restore playing state
+    setTimeout(() => {
+      if (mainVideoRef.current) {
+        mainVideoRef.current.currentTime = currentTimeSnapshot
+        
+        // If it was paused, keep it paused
+        if (!wasPlaying && !mainVideoRef.current.paused) {
+          mainVideoRef.current.pause()
         }
-      }, 0)
-    }
+        // If it was playing, ensure it's playing
+        else if (wasPlaying && mainVideoRef.current.paused) {
+          mainVideoRef.current.play()
+        }
+      }
+    }, 0)
   }
 
   // Synchronize all videos when main video plays/pauses
@@ -529,8 +540,62 @@ function App() {
         </div>
       ) : (
         <div className="video-container">
-          {/* Event DateTime Display */}
-          {eventDateTime && (
+          {/* Controls Overlay */}
+          {showControls && (
+            <div className="controls-overlay">
+              {/* Event DateTime Display */}
+              {eventDateTime && (
+                <div 
+                  className="datetime-display"
+                  onClick={() => {
+                    setShowEventsPanel(!showEventsPanel)
+                    setShowControls(!showControls)
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {formatDateTime(eventDateTime, Math.floor(currentTime))}
+                </div>
+              )}
+
+              {/* Events Panel - Always show when events exist */}
+              {Object.keys(allEvents).length > 0 && showEventsPanel && (
+                <div className="events-panel">
+                  <div className="events-panel-header">Events</div>
+                  <div className="events-panel-list">
+                    {Object.keys(allEvents).sort().map((eventKey) => (
+                      <div
+                        key={eventKey}
+                        className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
+                        onClick={() => handleEventSwitch(eventKey)}
+                      >
+                        <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
+                        <div className="event-item-info">{allEvents[eventKey].length} videos</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Button and Help Button */}
+              <div className="top-buttons">
+                <button 
+                  className="clear-button"
+                  onClick={handleClearVideos}
+                >
+                  Choose Other Videos
+                </button>
+                <button 
+                  className="help-button"
+                  onClick={() => setShowHelpModal(true)}
+                >
+                  Help
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Date display when controls are hidden - clickable to show controls */}
+          {!showControls && eventDateTime && (
             <div 
               className="datetime-display"
               onClick={() => {
@@ -540,25 +605,6 @@ function App() {
               style={{ cursor: 'pointer' }}
             >
               {formatDateTime(eventDateTime, Math.floor(currentTime))}
-            </div>
-          )}
-
-          {/* Events Panel - Always show when events exist */}
-          {Object.keys(allEvents).length > 0 && showEventsPanel && (
-            <div className="events-panel">
-              <div className="events-panel-header">Events</div>
-              <div className="events-panel-list">
-                {Object.keys(allEvents).sort().map((eventKey) => (
-                  <div
-                    key={eventKey}
-                    className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
-                    onClick={() => handleEventSwitch(eventKey)}
-                  >
-                    <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
-                    <div className="event-item-info">{allEvents[eventKey].length} videos</div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -590,7 +636,7 @@ function App() {
                   style={{ display: 'none' }}
                 />
 
-                {/* Custom Controls */}
+                 {/* Custom Controls - Part of overlay */}
                 {showControls && <div className="custom-controls">
                   {/* Control Buttons */}
                   <div className="controls-row">
@@ -743,22 +789,6 @@ function App() {
             ))}
           </div>
 
-          {/* Clear Button and Help Button */}
-          <div className="top-buttons">
-            <button 
-              className="clear-button"
-              onClick={handleClearVideos}
-            >
-              Choose Other Videos
-            </button>
-            <button 
-              className="help-button"
-              onClick={() => setShowHelpModal(true)}
-            >
-              Keyboard Shortcuts
-            </button>
-          </div>
-
           {/* Help Modal */}
           {showHelpModal && (
             <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
@@ -831,6 +861,13 @@ function App() {
                     <div className="shortcut-item">
                       <span className="shortcut-key">↓</span>
                       <span className="shortcut-desc">Next Angle</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Interface</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">Click Date/Time</span>
+                      <span className="shortcut-desc">Toggle Controls & Events</span>
                     </div>
                   </div>
                 </div>

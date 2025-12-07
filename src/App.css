@@ -97,6 +97,20 @@
   background: #000;
 }
 
+.controls-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.controls-overlay > * {
+  pointer-events: auto;
+}
+
 .datetime-display {
   position: absolute;
   top: 20px;
@@ -423,7 +437,8 @@
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
@@ -433,6 +448,9 @@
   align-items: center;
   padding: 20px 25px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  background: #1a1a1a;
+  border-radius: 12px 12px 0 0;
 }
 
 .modal-header h2 {
@@ -463,10 +481,12 @@
 
 .modal-body {
   padding: 25px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .shortcut-section {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .shortcut-section:last-child {
@@ -475,8 +495,8 @@
 
 .shortcut-section h3 {
   color: #667eea;
-  font-size: 1.1rem;
-  margin: 0 0 15px 0;
+  font-size: 1rem;
+  margin: 0 0 10px 0;
   font-weight: 600;
 }
 
@@ -484,7 +504,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -495,19 +515,19 @@
 .shortcut-key {
   background: rgba(102, 126, 234, 0.2);
   color: #667eea;
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 6px;
   font-family: 'Courier New', monospace;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   border: 1px solid rgba(102, 126, 234, 0.3);
-  min-width: 120px;
+  min-width: 100px;
   text-align: center;
 }
 
 .shortcut-desc {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   flex: 1;
   text-align: right;
 }
