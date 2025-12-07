@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
+import { extractSeiData, formatSeiValue, getSeiFieldLabel } from './seiExtractor'
 
 function App() {
   const [videos, setVideos] = useState([])
@@ -17,6 +18,10 @@ function App() {
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
   const [pendingAngleSwitch, setPendingAngleSwitch] = useState(null)
+  const [seiData, setSeiData] = useState([]) // All SEI messages for current video
+  const [currentSeiData, setCurrentSeiData] = useState(null) // SEI data for current frame
+  const [showSeiPanel, setShowSeiPanel] = useState(true) // SEI panel visibility
+  const [seiExtractionStatus, setSeiExtractionStatus] = useState('idle') // idle, loading, success, error
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
@@ -153,7 +158,7 @@ function App() {
     processFiles(files)
   }
 
-  const processFiles = (files) => {
+  const processFiles = async (files) => {
     const videoFiles = files.filter(file => file.type.startsWith('video/'))
     
     if (videoFiles.length === 0) {
@@ -206,13 +211,34 @@ function App() {
     
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
     const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
-    setSelectedAngle(frontVideo ? frontVideo.angle : oldestEventVideos[0].angle)
+    const selectedAngle = frontVideo ? frontVideo.angle : oldestEventVideos[0].angle
+    setSelectedAngle(selectedAngle)
+    
+    // Extract SEI data from the selected video
+    const selectedVideoFile = oldestEventVideos.find(v => v.angle === selectedAngle)?.file
+    if (selectedVideoFile) {
+      await extractAndSetSeiData(selectedVideoFile)
+    }
     
     // Don't auto-play - let user start playback manually
     setIsPlaying(false)
   }
 
-  const handleThumbnailClick = useCallback((angle) => {
+  // Extract SEI data from video file
+  const extractAndSetSeiData = async (file) => {
+    setSeiExtractionStatus('loading')
+    try {
+      const messages = await extractSeiData(file)
+      setSeiData(messages)
+      setSeiExtractionStatus(messages.length > 0 ? 'success' : 'error')
+    } catch (error) {
+      console.error('Failed to extract SEI data:', error)
+      setSeiData([])
+      setSeiExtractionStatus('error')
+    }
+  }
+
+  const handleThumbnailClick = useCallback(async (angle) => {
     // Don't allow clicking on the currently selected angle
     if (angle === selectedAngle) return
     
@@ -226,7 +252,13 @@ function App() {
     // Store the pending switch data and update the angle
     setPendingAngleSwitch({ currentTime, wasPlaying, currentRate })
     setSelectedAngle(angle)
-  }, [selectedAngle])
+    
+    // Extract SEI data for the new angle
+    const newVideo = videos.find(v => v.angle === angle)
+    if (newVideo?.file) {
+      await extractAndSetSeiData(newVideo.file)
+    }
+  }, [selectedAngle, videos])
 
   // Synchronize all videos when main video plays/pauses
   const handleMainVideoPlay = () => {
@@ -253,18 +285,46 @@ function App() {
     }
   }
 
-  // Synchronize time across all videos
+  // Synchronize time across all videos and update SEI data
   const handleMainVideoTimeUpdate = () => {
     if (!mainVideoRef.current) return
     
     const currentTime = mainVideoRef.current.currentTime
     setCurrentTime(currentTime)
     
+    // Update current SEI data based on video time
+    updateSeiDataForCurrentTime(currentTime)
+    
     Object.values(thumbnailRefsRef.current).forEach(ref => {
       if (ref && Math.abs(ref.currentTime - currentTime) > 0.3) {
         ref.currentTime = currentTime
       }
     })
+  }
+
+  // Update SEI data based on current playback time
+  const updateSeiDataForCurrentTime = (time) => {
+    if (seiData.length === 0) return
+    
+    // Estimate frame number based on time (assuming ~30fps)
+    const frameRate = 30
+    const estimatedFrame = Math.floor(time * frameRate)
+    
+    // Find closest SEI message by frame number
+    let closestSei = null
+    let minDiff = Infinity
+    
+    for (const sei of seiData) {
+      if (sei.frame_seq_no !== undefined) {
+        const diff = Math.abs(Number(sei.frame_seq_no) - estimatedFrame)
+        if (diff < minDiff) {
+          minDiff = diff
+          closestSei = sei
+        }
+      }
+    }
+    
+    setCurrentSeiData(closestSei)
   }
 
   // Sync seeking
@@ -383,7 +443,7 @@ function App() {
     }
   }, [])
 
-  const handleEventSwitch = (eventKey) => {
+  const handleEventSwitch = async (eventKey) => {
     if (eventKey === selectedEvent) return
     
     const eventVideos = allEvents[eventKey]
@@ -400,7 +460,14 @@ function App() {
     
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
     const frontVideo = eventVideos.find(v => v.angle.toLowerCase() === 'front')
-    setSelectedAngle(frontVideo ? frontVideo.angle : eventVideos[0].angle)
+    const newAngle = frontVideo ? frontVideo.angle : eventVideos[0].angle
+    setSelectedAngle(newAngle)
+    
+    // Extract SEI data for the new event
+    const newVideo = eventVideos.find(v => v.angle === newAngle)
+    if (newVideo?.file) {
+      await extractAndSetSeiData(newVideo.file)
+    }
   }
 
   const handleClearVideos = () => {
@@ -419,6 +486,9 @@ function App() {
     setIsPlaying(false)
     setPlaybackRate(1)
     setDuration(0)
+    setSeiData([])
+    setCurrentSeiData(null)
+    setSeiExtractionStatus('idle')
   }
 
   // Cleanup throttle timer on unmount
@@ -627,8 +697,61 @@ function App() {
                 </div>
               )}
 
+              {/* SEI Data Panel */}
+              {showSeiPanel && (
+                <div className="sei-panel">
+                  <div className="sei-panel-header">
+                    <span>Telemetry Data</span>
+                    <button 
+                      className="sei-toggle"
+                      onClick={() => setShowSeiPanel(false)}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                  {seiExtractionStatus === 'loading' && (
+                    <div className="sei-no-data">Loading telemetry data...</div>
+                  )}
+                  {seiExtractionStatus === 'error' && (
+                    <div className="sei-no-data">
+                      No telemetry data available.
+                      <br />
+                      <small>SEI data requires Tesla firmware 2025.44.25+ and HW3+</small>
+                    </div>
+                  )}
+                  {seiExtractionStatus === 'success' && currentSeiData && (
+                    <div className="sei-data-grid">
+                      {Object.entries(currentSeiData)
+                        .filter(([key]) => key !== 'version' && key !== 'frame_seq_no')
+                        .map(([key, value]) => (
+                          <div key={key} className="sei-data-item">
+                            <span className="sei-data-label">{getSeiFieldLabel(key)}</span>
+                            <span className={`sei-data-value ${
+                              key === 'brake_applied' && value ? 'highlight' : ''
+                            }${key === 'blinker_on_left' && value ? 'highlight' : ''
+                            }${key === 'blinker_on_right' && value ? 'highlight' : ''}`}>
+                              {formatSeiValue(key, value)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                  {seiExtractionStatus === 'success' && !currentSeiData && (
+                    <div className="sei-no-data">Waiting for telemetry data...</div>
+                  )}
+                </div>
+              )}
+
               {/* Clear Button and Help Button */}
               <div className="top-buttons">
+                {!showSeiPanel && seiExtractionStatus === 'success' && (
+                  <button 
+                    className="help-button"
+                    onClick={() => setShowSeiPanel(true)}
+                  >
+                    Show Telemetry
+                  </button>
+                )}
                 <button 
                   className="clear-button"
                   onClick={handleClearVideos}
@@ -917,6 +1040,18 @@ function App() {
                     <div className="shortcut-item">
                       <span className="shortcut-key">Click Date/Time</span>
                       <span className="shortcut-desc">Toggle Controls & Events</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>Telemetry Data (SEI)</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key" style={{minWidth: 'auto'}}>Real-time vehicle data synced with video</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key" style={{minWidth: 'auto'}}>Requires firmware 2025.44.25+ and HW3+</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key" style={{minWidth: 'auto'}}>Shows: speed, steering, autopilot, GPS, etc.</span>
                     </div>
                   </div>
                 </div>

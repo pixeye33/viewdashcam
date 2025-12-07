@@ -16,6 +16,7 @@ If you have **dashcam footage** or **multi-camera recordings** from different an
 
 - **Multi-Event Support** - Load videos from multiple events/incidents and switch between them instantly
 - **Multi-Angle Synchronized Playback** - View all camera angles of an event in perfect sync
+- **SEI Telemetry Data** - View real-time vehicle data synced with Tesla dashcam videos (speed, steering, autopilot, GPS, etc.)
 - **Smart Panel Hiding** - Events panel auto-hides for single events, toggle by clicking the datetime
 - **Drag and drop** video files to play them instantly
 - **Browser-based playback** - supports all common video formats (MP4, WebM, OGG, etc.)
@@ -94,6 +95,29 @@ Name your videos using this pattern: `YYYY-MM-DD_HH-MM-SS-angle.mp4`
 - All camera angles stay **perfectly synchronized**
 - The **datetime display** shows the current timestamp (event time + video position)
 - Select any angle to make it the main view while keeping others in sync
+
+### Tesla SEI Telemetry Data
+
+For compatible Tesla dashcam videos, ViewDashCam automatically extracts and displays real-time vehicle telemetry data synchronized with video playback:
+
+**Supported Data:**
+- Vehicle speed (km/h and mph)
+- Steering wheel angle
+- Accelerator pedal position
+- Gear state (Park, Drive, Reverse, Neutral)
+- Brake status
+- Turn signal indicators
+- Autopilot state (Self-Driving, Autosteer, TACC, None)
+- GPS coordinates (latitude, longitude)
+- Vehicle heading
+- Linear acceleration (X, Y, Z axes)
+
+**Requirements:**
+- Tesla firmware version 2025.44.25 or later
+- Hardware 3 (HW3) or above
+- Video recorded while vehicle is in motion (parked videos may not contain SEI data)
+
+The telemetry panel appears on the right side when SEI data is detected. You can show/hide it using the toggle button.
 
 ## Deployment
 

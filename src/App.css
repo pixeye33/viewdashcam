@@ -622,9 +622,124 @@
   transform: translateY(0);
 }
 
+/* SEI Data Panel */
+.sei-panel {
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 15px;
+  border-radius: 10px;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  max-height: 500px;
+  max-width: 350px;
+  overflow-y: auto;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.sei-panel-header {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sei-toggle {
+  background: rgba(102, 126, 234, 0.3);
+  border: 1px solid rgba(102, 126, 234, 0.5);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-transform: none;
+}
+
+.sei-toggle:hover {
+  background: rgba(102, 126, 234, 0.5);
+}
+
+.sei-data-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.sei-data-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border-left: 3px solid rgba(102, 126, 234, 0.5);
+}
+
+.sei-data-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.sei-data-value {
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+}
+
+.sei-data-value.highlight {
+  color: #667eea;
+}
+
+.sei-no-data {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 20px;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .drop-content h1 {
     font-size: 1.8rem;
+  }
+
+  .sei-panel {
+    top: 55px;
+    right: 10px;
+    max-width: calc(100vw - 20px);
+    max-height: 300px;
+    padding: 10px;
+  }
+
+  .sei-panel-header {
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+
+  .sei-data-item {
+    padding: 6px 10px;
+  }
+
+  .sei-data-label {
+    font-size: 0.7rem;
+  }
+
+  .sei-data-value {
+    font-size: 0.75rem;
   }
 
   .upload-icon {
