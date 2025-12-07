@@ -137,13 +137,13 @@
   position: absolute;
   top: 70px;
   left: 20px;
+  bottom: 220px;
   background: rgba(0, 0, 0, 0.9);
   padding: 15px;
   border-radius: 10px;
   z-index: 10;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   max-width: 400px;
-  max-height: calc(100vh - 250px);
   overflow-y: auto;
 }
 
@@ -658,8 +658,8 @@
   .events-panel {
     top: 55px;
     left: 10px;
+    bottom: 180px;
     max-width: calc(100vw - 20px);
-    max-height: calc(100vh - 200px);
     padding: 10px;
   }
 
