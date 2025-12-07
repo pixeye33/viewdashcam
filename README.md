@@ -14,12 +14,36 @@ If you have **dashcam footage** or **multi-camera recordings** from different an
 
 ## Features
 
+### Core Playback
 - **Multi-Event Support** - Load videos from multiple events/incidents and switch between them instantly
 - **Multi-Angle Synchronized Playback** - View all camera angles of an event in perfect sync
 - **Smart Panel Hiding** - Events panel auto-hides for single events, toggle by clicking the datetime
-- **Drag and drop** video files to play them instantly
+- **Drag and drop** video files or entire folders to play them instantly
 - **Browser-based playback** - supports all common video formats (MP4, WebM, OGG, etc.)
+
+### Advanced Controls
+- **Frame-by-Frame Navigation** - Step through videos one frame at a time (30fps)
+- **Variable Playback Speed** - From 0.25x to 2x speed with keyboard shortcuts
+- **Time Seeking** - Jump forward/backward 10 seconds or click the progress bar
+- **Video Preview** - Hover over progress bar to see thumbnail preview and timestamp
+- **Keyboard Shortcuts** - Complete keyboard control for efficient video review
+
+### Tesla Dashcam Integration
+- **SEI Metadata Overlay** - Displays real-time vehicle telemetry from Tesla dashcam videos (front camera):
+  - **Speed** (mph/km/h)
+  - **Gear State** (P/D/R/N)
+  - **Steering Wheel Angle** with visual indicator
+  - **Accelerator Pedal Position**
+  - **Brake Status**
+  - **Blinker Indicators**
+  - **Autopilot State** (Self Driving/Autosteer/TACC)
+  - **GPS Coordinates & Heading**
+  - **Linear Acceleration** (X/Y/Z axes)
+
+### User Experience
 - **Clean, modern UI** with smooth animations and responsive design
+- **Intuitive Controls** - Toggle visibility with a click on the datetime
+- **Help Modal** - Built-in keyboard shortcuts reference
 
 ## Privacy & Security
 
@@ -94,6 +118,42 @@ Name your videos using this pattern: `YYYY-MM-DD_HH-MM-SS-angle.mp4`
 - All camera angles stay **perfectly synchronized**
 - The **datetime display** shows the current timestamp (event time + video position)
 - Select any angle to make it the main view while keeping others in sync
+
+## Keyboard Shortcuts
+
+### Playback Controls
+- **Space** - Play/Pause
+- **←** - Previous frame (30fps)
+- **→** - Next frame (30fps)
+- **Shift + ←** - Jump back 10 seconds
+- **Shift + →** - Jump forward 10 seconds
+
+### Playback Speed
+- **Q** - 0.25x speed
+- **W** - 0.5x speed
+- **E** - 1x speed (normal)
+- **R** - 1.25x speed
+- **T** - 1.5x speed
+- **Y** - 2x speed
+
+### Camera Angles
+- **1-9** - Select camera angle directly
+- **↑** - Previous angle
+- **↓** - Next angle
+
+### Interface
+- **Click Date/Time Display** - Toggle controls and events panel visibility
+
+## Tesla Dashcam Support
+
+ViewDashCam includes native support for **Tesla dashcam videos** with SEI (Supplemental Enhancement Information) metadata extraction:
+
+- Automatically detects and displays vehicle telemetry overlay on the **front camera** view
+- No additional setup required - just drag and drop your Tesla dashcam videos
+- All Tesla dashcam metadata is extracted and displayed in real-time as you review footage
+- The SEI overlay appears only when viewing the front camera angle
+
+**Note:** SEI metadata is embedded in Tesla dashcam videos since approximately 2019. Older videos may not contain this data.
 
 ## Deployment
 

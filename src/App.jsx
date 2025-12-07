@@ -597,24 +597,49 @@ function App() {
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" 
               />
             </svg>
-            <h1>Drop your videos or folder here</h1>
-            <p>or</p>
-            <label className="file-input-label">
-              <input 
-                type="file" 
-                accept="video/*" 
-                onChange={handleFileInput}
-                className="file-input"
-                multiple
-              />
-              Browse Files
-            </label>
-            <p className="extra-info">
-              Videos must follow pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
-            </p>
-            <p className="extra-info">
-              Nothing is uploaded, everything happens in your browser
-            </p>
+            <h1>ViewDashCam</h1>
+            <p className="tagline">Synchronized multi-angle dashcam video player</p>
+            
+            <div className="features-brief">
+              <div className="feature-item">
+                <span className="feature-icon">📹</span>
+                <span>View multiple camera angles in perfect sync</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🚗</span>
+                <span>Built-in Tesla telemetry overlay (speed, gear, GPS, etc.)</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">⚡</span>
+                <span>Frame-by-frame navigation & variable speed playback</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🔒</span>
+                <span>100% private - all processing happens in your browser</span>
+              </div>
+            </div>
+
+            <div className="cta-section">
+              <h2>Get Started</h2>
+              <p>Drop your videos or folder here</p>
+              <p style={{ margin: '8px 0', fontSize: '14px' }}>or</p>
+              <label className="file-input-label">
+                <input 
+                  type="file" 
+                  accept="video/*" 
+                  onChange={handleFileInput}
+                  className="file-input"
+                  multiple
+                />
+                Browse Files
+              </label>
+              <p className="extra-info" style={{ marginTop: '16px' }}>
+                Videos must follow pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
+              </p>
+              <p className="extra-info">
+                Nothing is uploaded, everything happens in your browser
+              </p>
+            </div>
           </div>
         </div>
       ) : (
