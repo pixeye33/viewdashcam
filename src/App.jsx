@@ -615,7 +615,7 @@ function App() {
               </div>
               <div className="feature-item">
                 <span className="feature-icon">🔒</span>
-                <span>100% private - all processing happens in your browser</span>
+                <span>100% private & free - all processing happens in your browser</span>
               </div>
             </div>
 
@@ -635,9 +635,6 @@ function App() {
               </label>
               <p className="extra-info" style={{ marginTop: '16px' }}>
                 Videos must follow pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
-              </p>
-              <p className="extra-info">
-                Nothing is uploaded, everything happens in your browser
               </p>
             </div>
           </div>
