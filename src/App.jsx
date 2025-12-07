@@ -280,6 +280,11 @@ function App() {
 
   const seekToFrame = (forward = true) => {
     if (mainVideoRef.current) {
+      // Pause playback when using frame by frame navigation
+      if (!mainVideoRef.current.paused) {
+        mainVideoRef.current.pause()
+      }
+      
       const frameRate = 30 // Assume 30fps
       const frameTime = 1 / frameRate
       const newTime = mainVideoRef.current.currentTime + (forward ? frameTime : -frameTime)
@@ -388,25 +393,32 @@ function App() {
       } else if (e.code === 'ArrowRight' && e.shiftKey) {
         e.preventDefault()
         jumpTime(10)
-      } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+      }
+      
+      // Speed controls with Q, W, E, R, T, Y
+      if (e.code === 'KeyQ') {
+        e.preventDefault()
+        changePlaybackSpeed(0.25)
+      } else if (e.code === 'KeyW') {
         e.preventDefault()
         changePlaybackSpeed(0.5)
-      } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+      } else if (e.code === 'KeyE') {
         e.preventDefault()
         changePlaybackSpeed(1)
-      } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+      } else if (e.code === 'KeyR') {
         e.preventDefault()
         changePlaybackSpeed(1.25)
-      } else if (e.code === 'Digit4' || e.code === 'Numpad4') {
+      } else if (e.code === 'KeyT') {
         e.preventDefault()
         changePlaybackSpeed(1.5)
-      } else if (e.code === 'Digit5' || e.code === 'Numpad5') {
+      } else if (e.code === 'KeyY') {
         e.preventDefault()
         changePlaybackSpeed(2)
       }
       
-      // Angle switching (only if videos are loaded)
+      // Direct angle selection with number keys (only if videos are loaded)
       if (videos.length > 0) {
+        // Arrow keys for cycling through angles
         const currentIndex = videos.findIndex(v => v.angle === selectedAngle)
         if (e.code === 'ArrowUp') {
           e.preventDefault()
@@ -416,6 +428,16 @@ function App() {
           e.preventDefault()
           const nextIndex = (currentIndex + 1) % videos.length
           handleThumbnailClick(videos[nextIndex].angle)
+        }
+        
+        // Number keys 1-9 for direct angle selection
+        const numKey = e.code.match(/^(Digit|Numpad)([1-9])$/)
+        if (numKey) {
+          const angleIndex = parseInt(numKey[2]) - 1
+          if (angleIndex < videos.length) {
+            e.preventDefault()
+            handleThumbnailClick(videos[angleIndex].angle)
+          }
         }
       }
     }
@@ -584,7 +606,7 @@ function App() {
                         title="Previous Frame (←)"
                       >
                         <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M11.5 12L20 6v12l-8.5-6zM11 6H9v12h2V6z"/>
+                          <path d="M6 6h2v12H6V6zm3 6l8.5 6V6L9 12z"/>
                         </svg>
                       </button>
 
@@ -595,7 +617,7 @@ function App() {
                         title="Next Frame (→)"
                       >
                         <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+                          <path d="M16 18h2V6h-2v12zm-11-6l8.5-6v12L5 12z"/>
                         </svg>
                       </button>
 
@@ -627,12 +649,19 @@ function App() {
                     <div className="controls-right">
                       {/* Playback Speed */}
                       <div className="speed-controls">
-                        {[0.5, 1, 1.25, 1.5, 2].map((rate) => (
+                        {[
+                          { rate: 0.25, key: 'Q' },
+                          { rate: 0.5, key: 'W' },
+                          { rate: 1, key: 'E' },
+                          { rate: 1.25, key: 'R' },
+                          { rate: 1.5, key: 'T' },
+                          { rate: 2, key: 'Y' }
+                        ].map(({ rate, key }) => (
                           <button
                             key={rate}
                             className={`speed-btn ${playbackRate === rate ? 'active' : ''}`}
                             onClick={() => changePlaybackSpeed(rate)}
-                            title={`Speed ${rate}x (${[0.5, 1, 1.25, 1.5, 2].indexOf(rate) + 1})`}
+                            title={`Speed ${rate}x (${key})`}
                           >
                             {rate}x
                           </button>
@@ -646,8 +675,9 @@ function App() {
                     <span>Space: Play/Pause</span>
                     <span>←/→: Frame</span>
                     <span>Shift+←/→: 10s</span>
-                    <span>↑/↓: Switch Angle</span>
-                    <span>1-5: Speed</span>
+                    <span>1-9: Select Angle</span>
+                    <span>↑/↓: Cycle Angle</span>
+                    <span>Q/W/E/R/T/Y: Speed</span>
                   </div>
                 </div>
               </>
