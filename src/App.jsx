@@ -205,6 +205,9 @@ function App() {
     // Select 'front' angle by default, or first angle if 'front' doesn't exist
     const frontVideo = oldestEventVideos.find(v => v.angle.toLowerCase() === 'front')
     setSelectedAngle(frontVideo ? frontVideo.angle : oldestEventVideos[0].angle)
+    
+    // Start playing the video
+    setIsPlaying(true)
   }
 
   const handleThumbnailClick = (angle) => {
@@ -213,22 +216,7 @@ function App() {
     const currentTimeSnapshot = mainVideoRef.current ? mainVideoRef.current.currentTime : 0
     
     setSelectedAngle(angle)
-    
-    // Sync the new main video to current time and restore playing state
-    setTimeout(() => {
-      if (mainVideoRef.current) {
-        mainVideoRef.current.currentTime = currentTimeSnapshot
-        
-        // If it was paused, keep it paused
-        if (!wasPlaying && !mainVideoRef.current.paused) {
-          mainVideoRef.current.pause()
-        }
-        // If it was playing, ensure it's playing
-        else if (wasPlaying && mainVideoRef.current.paused) {
-          mainVideoRef.current.play()
-        }
-      }
-    }, 0)
+    setIsPlaying(wasPlaying)
   }
 
   // Synchronize all videos when main video plays/pauses
@@ -411,6 +399,40 @@ function App() {
     setPlaybackRate(1)
     setDuration(0)
   }
+
+  // Sync video when angle changes
+  useEffect(() => {
+    if (mainVideoRef.current && selectedVideo) {
+      const video = mainVideoRef.current
+      
+      const handleLoadedData = () => {
+        // Set playback rate
+        video.playbackRate = playbackRate
+        
+        // Restore current time
+        video.currentTime = currentTime
+        
+        // Handle play/pause state
+        if (isPlaying) {
+          video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      }
+      
+      // If video is already loaded, sync immediately
+      if (video.readyState >= 2) {
+        handleLoadedData()
+      } else {
+        // Otherwise wait for it to load
+        video.addEventListener('loadeddata', handleLoadedData, { once: true })
+      }
+      
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData)
+      }
+    }
+  }, [selectedAngle, selectedVideo])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -615,7 +637,6 @@ function App() {
                  <video
                   ref={mainVideoRef}
                   src={selectedVideo.url}
-                  autoPlay
                   className="video-player main"
                   onPlay={handleMainVideoPlay}
                   onPause={handleMainVideoPause}
@@ -794,7 +815,7 @@ function App() {
             <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
               <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                  <h2>Keyboard Shortcuts</h2>
+                  <h2>Help</h2>
                   <button className="modal-close" onClick={() => setShowHelpModal(false)}>×</button>
                 </div>
                 <div className="modal-body">
