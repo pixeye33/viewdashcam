@@ -609,8 +609,11 @@ function App() {
               />
               Browse Files
             </label>
-            <p className="file-info">
+            <p className="extra-info">
               Videos must follow pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
+            </p>
+            <p className="extra-info">
+              Nothing is uploaded, everything happens in your browser
             </p>
           </div>
         </div>

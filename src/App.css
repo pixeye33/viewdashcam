@@ -35,7 +35,7 @@
 .drop-content {
   text-align: center;
   color: white;
-  max-width: 500px;
+  max-width: 800px;
 }
 
 .upload-icon {
@@ -82,7 +82,7 @@
   display: none;
 }
 
-.file-info {
+.extra-info {
   font-size: 0.9rem;
   opacity: 0.8;
   margin-top: 10px;
