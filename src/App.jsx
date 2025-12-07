@@ -16,13 +16,13 @@ function App() {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
-  const [isAngleSwitching, setIsAngleSwitching] = useState(false)
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
   const progressBarRef = useRef(null)
   const previewVideoRef = useRef(null)
   const previewCanvasRef = useRef(null)
+  const bufferVideoRef = useRef(null) // Hidden video for buffering angle switches
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -212,20 +212,112 @@ function App() {
   }
 
   const handleThumbnailClick = (angle) => {
-    // Capture current state before switching
-    if (mainVideoRef.current) {
-      const video = mainVideoRef.current
-      // Store the current state in a ref so we can restore it after the angle change
-      const stateToRestore = {
-        time: video.currentTime,
-        playing: !video.paused,
-        rate: video.playbackRate
+    // Don't allow clicking on the currently selected angle
+    if (angle === selectedAngle) return
+    
+    // Get the video we're switching to
+    const newVideo = videos.find(v => v.angle === angle)
+    if (!newVideo || !mainVideoRef.current) return
+    
+    // Capture current state
+    const currentTime = mainVideoRef.current.currentTime
+    const wasPlaying = !mainVideoRef.current.paused
+    const currentRate = mainVideoRef.current.playbackRate
+    
+    // Create buffer videos for both main and all thumbnails
+    const bufferVideos = {}
+    
+    // Buffer for main video (switching to the new angle)
+    const mainBuffer = document.createElement('video')
+    mainBuffer.src = newVideo.url
+    mainBuffer.muted = false
+    mainBuffer.playbackRate = currentRate
+    mainBuffer.style.display = 'none'
+    document.body.appendChild(mainBuffer)
+    bufferVideos.main = mainBuffer
+    
+    // Create buffers for all thumbnail videos
+    videos.forEach(video => {
+      const thumbBuffer = document.createElement('video')
+      thumbBuffer.src = video.url
+      thumbBuffer.muted = true
+      thumbBuffer.playbackRate = currentRate
+      thumbBuffer.style.display = 'none'
+      document.body.appendChild(thumbBuffer)
+      bufferVideos[video.angle] = thumbBuffer
+    })
+    
+    let buffersReady = 0
+    const totalBuffers = Object.keys(bufferVideos).length
+    
+    // Function called when all buffers are ready
+    const swapAllVideos = () => {
+      // Swap main video
+      const mainVideo = mainVideoRef.current
+      if (mainVideo) {
+        mainVideo.src = newVideo.url
+        mainVideo.playbackRate = currentRate
+        
+        const handleMainSeeked = () => {
+          if (wasPlaying) {
+            mainVideo.play().catch(() => {})
+          }
+          mainVideo.removeEventListener('seeked', handleMainSeeked)
+        }
+        
+        mainVideo.addEventListener('seeked', handleMainSeeked, { once: true })
+        mainVideo.currentTime = currentTime
       }
-      // Use a data attribute to store the state temporarily
-      video.dataset.pendingRestore = JSON.stringify(stateToRestore)
+      
+      // Swap all thumbnail videos
+      Object.entries(thumbnailRefsRef.current).forEach(([thumbAngle, thumbVideo]) => {
+        if (thumbVideo) {
+          const thumbVideoData = videos.find(v => v.angle === thumbAngle)
+          if (thumbVideoData) {
+            thumbVideo.src = thumbVideoData.url
+            thumbVideo.playbackRate = currentRate
+            
+            const handleThumbSeeked = () => {
+              if (wasPlaying && thumbVideo.paused) {
+                thumbVideo.play().catch(() => {})
+              } else if (!wasPlaying && !thumbVideo.paused) {
+                thumbVideo.pause()
+              }
+              thumbVideo.removeEventListener('seeked', handleThumbSeeked)
+            }
+            
+            thumbVideo.addEventListener('seeked', handleThumbSeeked, { once: true })
+            thumbVideo.currentTime = currentTime
+          }
+        }
+      })
+      
+      // Clean up all buffer videos
+      Object.values(bufferVideos).forEach(buffer => buffer.remove())
     }
-    // Set flag to hide video during transition
-    setIsAngleSwitching(true)
+    
+    // Set up each buffer video
+    Object.entries(bufferVideos).forEach(([key, buffer]) => {
+      const handleBufferReady = () => {
+        buffer.currentTime = currentTime
+      }
+      
+      const handleBufferSeeked = () => {
+        buffersReady++
+        if (buffersReady === totalBuffers) {
+          // All buffers are ready, swap the videos
+          swapAllVideos()
+        }
+        buffer.removeEventListener('loadeddata', handleBufferReady)
+        buffer.removeEventListener('seeked', handleBufferSeeked)
+      }
+      
+      buffer.addEventListener('loadeddata', handleBufferReady, { once: true })
+      buffer.addEventListener('seeked', handleBufferSeeked, { once: true })
+      buffer.load()
+    })
+    
+    // Update the selected angle immediately for UI feedback
     setSelectedAngle(angle)
   }
 
@@ -495,67 +587,6 @@ function App() {
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
 
-  // Sync video when angle changes
-  useEffect(() => {
-    if (mainVideoRef.current && selectedVideo) {
-      const video = mainVideoRef.current
-      
-      const handleLoadedData = () => {
-        // Restore state from the data attribute if it exists
-        const pendingRestore = video.dataset.pendingRestore
-        if (pendingRestore) {
-          try {
-            const state = JSON.parse(pendingRestore)
-            
-            // Set playback rate
-            video.playbackRate = state.rate
-            
-            // Restore current time - use seeked event to know when ready
-            video.currentTime = state.time
-            
-            // Wait for seek to complete before showing video and handling play state
-            const handleSeeked = () => {
-              // Now that we're at the right time, show the video
-              setIsAngleSwitching(false)
-              
-              // Handle play/pause state
-              if (state.playing) {
-                video.play().catch(() => {})
-              } else {
-                video.pause()
-              }
-              
-              video.removeEventListener('seeked', handleSeeked)
-            }
-            
-            video.addEventListener('seeked', handleSeeked, { once: true })
-            
-            // Clear the pending restore data
-            delete video.dataset.pendingRestore
-          } catch (e) {
-            // If parsing fails, just show the video anyway
-            setIsAngleSwitching(false)
-          }
-        } else {
-          // No pending restore, just show the video
-          setIsAngleSwitching(false)
-        }
-      }
-      
-      // If video is already loaded, sync immediately
-      if (video.readyState >= 2) {
-        handleLoadedData()
-      } else {
-        // Otherwise wait for it to load
-        video.addEventListener('loadeddata', handleLoadedData, { once: true })
-      }
-      
-      return () => {
-        video.removeEventListener('loadeddata', handleLoadedData)
-      }
-    }
-  }, [selectedAngle, selectedVideo])
-
   return (
     <div 
       className={`app-container ${isDragging ? 'dragging' : ''}`}
@@ -680,7 +711,6 @@ function App() {
                   onTimeUpdate={handleMainVideoTimeUpdate}
                   onSeeking={handleMainVideoSeeking}
                   onLoadedMetadata={handleLoadedMetadata}
-                  style={{ opacity: isAngleSwitching ? 0 : 1, transition: 'opacity 0.1s' }}
                 >
                   Your browser does not support the video tag.
                 </video>
