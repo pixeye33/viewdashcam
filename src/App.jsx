@@ -645,7 +645,7 @@ function App() {
                         title="Previous Frame (←)"
                       >
                         <svg viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(180deg)' }}>
-                          <path d="M16 18h2V6h-2v12zm-11-6l8.5-6v12L5 12z"/>
+                          <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
                         </svg>
                       </button>
 
@@ -656,7 +656,7 @@ function App() {
                         title="Next Frame (→)"
                       >
                         <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M16 18h2V6h-2v12zm-11-6l8.5-6v12L5 12z"/>
+                          <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
                         </svg>
                       </button>
 
