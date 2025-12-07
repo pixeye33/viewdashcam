@@ -211,12 +211,12 @@ function App() {
   }
 
   const handleThumbnailClick = (angle) => {
-    // Store the current playing state before switching
-    const wasPlaying = isPlaying
-    const currentTimeSnapshot = mainVideoRef.current ? mainVideoRef.current.currentTime : 0
-    
+    // Store the current playing state and time before switching
+    if (mainVideoRef.current) {
+      const currentTimeSnapshot = mainVideoRef.current.currentTime
+      setCurrentTime(currentTimeSnapshot)
+    }
     setSelectedAngle(angle)
-    setIsPlaying(wasPlaying)
   }
 
   // Synchronize all videos when main video plays/pauses
