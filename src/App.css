@@ -269,7 +269,7 @@
 
 .progress-bar-preview {
   position: absolute;
-  top: -130px;
+  bottom: 20px;
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 100;
@@ -294,14 +294,14 @@
 .preview-tooltip::after {
   content: '';
   position: absolute;
-  bottom: -8px;
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid rgba(0, 0, 0, 0.95);
+  border-top: 10px solid rgba(0, 0, 0, 0.95);
 }
 
 .preview-frame {
