@@ -18,6 +18,8 @@ function App() {
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
   const progressBarRef = useRef(null)
+  const previewVideoRef = useRef(null)
+  const previewCanvasRef = useRef(null)
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -326,11 +328,37 @@ function App() {
     const rect = progressBarRef.current.getBoundingClientRect()
     const pos = (e.clientX - rect.left) / rect.width
     const hoverTime = pos * duration
-    setPreviewTime(hoverTime >= 0 && hoverTime <= duration ? hoverTime : null)
+    
+    if (hoverTime >= 0 && hoverTime <= duration) {
+      setPreviewTime(hoverTime)
+      
+      // Capture frame at hover time for preview
+      if (previewVideoRef.current && previewCanvasRef.current) {
+        previewVideoRef.current.currentTime = hoverTime
+      }
+    } else {
+      setPreviewTime(null)
+    }
   }
 
   const handleProgressLeave = () => {
     setPreviewTime(null)
+  }
+
+  // Capture frame to canvas when preview video seeks
+  const handlePreviewSeeked = () => {
+    if (previewVideoRef.current && previewCanvasRef.current) {
+      const canvas = previewCanvasRef.current
+      const video = previewVideoRef.current
+      const ctx = canvas.getContext('2d')
+      
+      // Set canvas size to match video aspect ratio
+      canvas.width = 160
+      canvas.height = (video.videoHeight / video.videoWidth) * 160
+      
+      // Draw current frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    }
   }
 
   const handleEventSwitch = (eventKey) => {
@@ -533,7 +561,7 @@ function App() {
           <div className="main-player">
             {selectedVideo && (
               <>
-                <video
+                 <video
                   ref={mainVideoRef}
                   src={selectedVideo.url}
                   autoPlay
@@ -546,6 +574,16 @@ function App() {
                 >
                   Your browser does not support the video tag.
                 </video>
+
+                {/* Hidden preview video for frame capture */}
+                <video
+                  ref={previewVideoRef}
+                  src={selectedVideo.url}
+                  className="preview-video-hidden"
+                  muted
+                  onSeeked={handlePreviewSeeked}
+                  style={{ display: 'none' }}
+                />
 
                 {/* Custom Controls */}
                 <div className="custom-controls">
@@ -568,7 +606,8 @@ function App() {
                           style={{ left: `${(previewTime / duration) * 100}%` }}
                         >
                           <div className="preview-tooltip">
-                            {formatTime(previewTime)}
+                            <canvas ref={previewCanvasRef} className="preview-frame" />
+                            <div className="preview-time">{formatTime(previewTime)}</div>
                           </div>
                         </div>
                       )}
@@ -605,8 +644,8 @@ function App() {
                         onClick={() => seekToFrame(false)}
                         title="Previous Frame (←)"
                       >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M6 6h2v12H6V6zm3 6l8.5 6V6L9 12z"/>
+                        <svg viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(180deg)' }}>
+                          <path d="M16 18h2V6h-2v12zm-11-6l8.5-6v12L5 12z"/>
                         </svg>
                       </button>
 
