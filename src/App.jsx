@@ -400,40 +400,6 @@ function App() {
     setDuration(0)
   }
 
-  // Sync video when angle changes
-  useEffect(() => {
-    if (mainVideoRef.current && selectedVideo) {
-      const video = mainVideoRef.current
-      
-      const handleLoadedData = () => {
-        // Set playback rate
-        video.playbackRate = playbackRate
-        
-        // Restore current time
-        video.currentTime = currentTime
-        
-        // Handle play/pause state
-        if (isPlaying) {
-          video.play().catch(() => {})
-        } else {
-          video.pause()
-        }
-      }
-      
-      // If video is already loaded, sync immediately
-      if (video.readyState >= 2) {
-        handleLoadedData()
-      } else {
-        // Otherwise wait for it to load
-        video.addEventListener('loadeddata', handleLoadedData, { once: true })
-      }
-      
-      return () => {
-        video.removeEventListener('loadeddata', handleLoadedData)
-      }
-    }
-  }, [selectedAngle, selectedVideo])
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -518,6 +484,40 @@ function App() {
   }
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
+
+  // Sync video when angle changes
+  useEffect(() => {
+    if (mainVideoRef.current && selectedVideo) {
+      const video = mainVideoRef.current
+      
+      const handleLoadedData = () => {
+        // Set playback rate
+        video.playbackRate = playbackRate
+        
+        // Restore current time
+        video.currentTime = currentTime
+        
+        // Handle play/pause state
+        if (isPlaying) {
+          video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      }
+      
+      // If video is already loaded, sync immediately
+      if (video.readyState >= 2) {
+        handleLoadedData()
+      } else {
+        // Otherwise wait for it to load
+        video.addEventListener('loadeddata', handleLoadedData, { once: true })
+      }
+      
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData)
+      }
+    }
+  }, [selectedAngle, selectedVideo, currentTime, isPlaying, playbackRate])
 
   return (
     <div 
