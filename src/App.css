@@ -156,6 +156,50 @@
   background: #000;
 }
 
+/* Fullscreen Mode - Hide thumbnails and progress bar */
+.video-container.fullscreen-mode .main-player {
+  flex: 1;
+}
+
+.video-container.fullscreen-mode .progress-bar-standalone {
+  display: none;
+}
+
+/* Theatre Mode - Thumbnails on right side vertically */
+.video-container.theatre-mode {
+  flex-direction: row;
+}
+
+.video-container.theatre-mode .main-player {
+  flex: 1;
+  height: 100%;
+}
+
+.video-container.theatre-mode .thumbnail-container {
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  padding: 10px;
+  border-top: none;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.video-container.theatre-mode .thumbnail-wrapper {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.video-container.theatre-mode .progress-bar-standalone {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 280px;
+  z-index: 20;
+}
+
 .controls-overlay {
   position: absolute;
   top: 0;
@@ -656,7 +700,8 @@
 }
 
 .clear-button,
-.help-button {
+.help-button,
+.mode-button {
   padding: 12px 24px;
   background: rgba(255, 255, 255, 0.9);
   color: #333;
@@ -667,17 +712,32 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-button {
+  background: rgba(102, 126, 234, 0.9);
+  color: white;
 }
 
 .clear-button:hover,
-.help-button:hover {
+.help-button:hover,
+.mode-button:hover {
   background: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
+.mode-button:hover {
+  background: #667eea;
+  color: white;
+}
+
 .clear-button:active,
-.help-button:active {
+.help-button:active,
+.mode-button:active {
   transform: translateY(0);
 }
 
@@ -734,9 +794,39 @@
   }
 
   .clear-button,
-  .help-button {
+  .help-button,
+  .mode-button {
     padding: 10px 20px;
     font-size: 0.9rem;
+  }
+
+  .mode-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Theatre mode adjustments for mobile */
+  .video-container.theatre-mode {
+    flex-direction: column;
+  }
+
+  .video-container.theatre-mode .thumbnail-container {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    border-left: none;
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .video-container.theatre-mode .thumbnail-wrapper {
+    width: 180px;
+    height: 101px;
+  }
+
+  .video-container.theatre-mode .progress-bar-standalone {
+    right: 0;
   }
 
   .datetime-display {

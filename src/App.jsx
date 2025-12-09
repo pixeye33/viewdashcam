@@ -19,6 +19,8 @@ function App() {
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
   const [pendingAngleSwitch, setPendingAngleSwitch] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(false) // Fullscreen mode
+  const [isTheatreMode, setIsTheatreMode] = useState(false) // Theatre mode
   
   const mainVideoRef = useRef(null)
   const thumbnailRefsRef = useRef({})
@@ -533,6 +535,17 @@ function App() {
         changePlaybackSpeed(2)
       }
       
+      // View mode controls
+      if (e.code === 'KeyF') {
+        e.preventDefault()
+        setIsFullscreen(prev => !prev)
+        setIsTheatreMode(false)
+      } else if (e.code === 'KeyM') {
+        e.preventDefault()
+        setIsTheatreMode(prev => !prev)
+        setIsFullscreen(false)
+      }
+      
       // Direct angle selection with number keys (only if videos are loaded)
       if (videos.length > 0) {
         // Arrow keys for cycling through angles
@@ -640,7 +653,7 @@ function App() {
           </div>
         </div>
       ) : (
-        <div className="video-container">
+        <div className={`video-container ${isFullscreen ? 'fullscreen-mode' : ''} ${isTheatreMode ? 'theatre-mode' : ''}`}>
           {/* Controls Overlay */}
           {showControls && (
             <div className="controls-overlay">
@@ -684,6 +697,38 @@ function App() {
                   onClick={handleClearVideos}
                 >
                   Choose Other Videos
+                </button>
+                <button 
+                  className="mode-button"
+                  onClick={() => {
+                    setIsFullscreen(!isFullscreen)
+                    setIsTheatreMode(false)
+                  }}
+                  title="Fullscreen Mode (F)"
+                >
+                  {isFullscreen ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                    </svg>
+                  )}
+                  <span style={{ marginLeft: '8px' }}>Fullscreen</span>
+                </button>
+                <button 
+                  className="mode-button"
+                  onClick={() => {
+                    setIsTheatreMode(!isTheatreMode)
+                    setIsFullscreen(false)
+                  }}
+                  title="Theatre Mode (M)"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M19 7H5c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 8H5V9h14v6z"/>
+                  </svg>
+                  <span style={{ marginLeft: '8px' }}>Theatre</span>
                 </button>
                 <button 
                   className="help-button"
@@ -875,8 +920,9 @@ function App() {
           )}
 
           {/* Thumbnail Videos */}
-          <div className="thumbnail-container">
-            {videos.map((video) => (
+          {!isFullscreen && (
+            <div className="thumbnail-container">
+              {videos.map((video) => (
               <div 
                 key={video.angle}
                 className={`thumbnail-wrapper ${video.angle === selectedAngle ? 'active' : ''}`}
@@ -894,8 +940,9 @@ function App() {
                 </video>
                 <div className="thumbnail-label">{formatAngleName(video.angle)}</div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Help Modal */}
           {showHelpModal && (
@@ -969,6 +1016,17 @@ function App() {
                     <div className="shortcut-item">
                       <span className="shortcut-key">↓</span>
                       <span className="shortcut-desc">Next Angle</span>
+                    </div>
+                  </div>
+                  <div className="shortcut-section">
+                    <h3>View Modes</h3>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">F</span>
+                      <span className="shortcut-desc">Toggle Fullscreen Mode</span>
+                    </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">M</span>
+                      <span className="shortcut-desc">Toggle Theatre Mode</span>
                     </div>
                   </div>
                   <div className="shortcut-section">
