@@ -619,6 +619,11 @@ function App() {
               </div>
             </div>
 
+            <div className="help-wanted-notice">
+              <h3>Help Wanted</h3>
+              <p>We're improving Tesla dashcam telemetry visualization! If you have footage to share for development (never shared publicly), please send it to <strong>mail@viewdash.cam</strong></p>
+            </div>
+
             <div className="cta-section">
               <h2>Get Started</h2>
               <p>Drop your videos or folder here</p>

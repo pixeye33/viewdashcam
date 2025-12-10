@@ -111,6 +111,36 @@
   opacity: 0.95;
 }
 
+.help-wanted-notice {
+  margin: 30px 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.help-wanted-notice h3 {
+  font-size: 1.3rem;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+  color: white;
+}
+
+.help-wanted-notice p {
+  font-size: 0.95rem;
+  margin: 0;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+.help-wanted-notice strong {
+  color: white;
+  font-weight: 700;
+}
+
 .cta-section {
   margin-top: 40px;
   padding-top: 30px;
@@ -710,6 +740,19 @@
   }
 
   .feature-item span:last-child {
+    font-size: 0.85rem;
+  }
+
+  .help-wanted-notice {
+    margin: 20px 0;
+    padding: 15px;
+  }
+
+  .help-wanted-notice h3 {
+    font-size: 1.1rem;
+  }
+
+  .help-wanted-notice p {
     font-size: 0.85rem;
   }
 
