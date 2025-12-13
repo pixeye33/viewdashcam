@@ -55,12 +55,7 @@ The app is deployed at: [https://viewdash.cam/](https://viewdash.cam/)
 
 ## Local Development
 
-### Prerequisites
-
-- Node.js (v20 or higher)
-- npm
-
-### Installation
+### Quick Start
 
 ```bash
 # Clone the repository
@@ -68,18 +63,29 @@ git clone https://github.com/pixeye33/viewdashcam.git
 cd viewdashcam
 
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun run dev
 ```
 
 The app will be available at `http://localhost:5173`
 
+### Prerequisites
+
+- [Bun](https://bun.sh/) runtime (required)
+
 ### Build
 
 ```bash
-npm run build
+# Build for production
+bun run build
+
+# Preview production build
+bun run preview
+
+# Build and serve with production server
+bun run serve
 ```
 
 The production-ready files will be in the `dist` directory.

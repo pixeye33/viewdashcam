@@ -3,21 +3,23 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "bun --bun vite",
+    "build": "bun --bun vite build",
+    "preview": "bun --bun vite preview",
+    "serve": "bun --bun vite build && bun server.js",
+    "serve:only": "bun server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "A frontend-only React app for playing videos via drag-and-drop",
   "dependencies": {
-    "protobufjs": "^7.4.0",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "protobufjs": "^7.5.4",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.1.1",
-    "vite": "^7.2.6"
+    "@vitejs/plugin-react": "^5.1.2",
+    "vite": "^7.2.7"
   }
 }
