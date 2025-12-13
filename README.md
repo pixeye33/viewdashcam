@@ -155,10 +155,6 @@ ViewDashCam includes native support for **Tesla dashcam videos** with SEI (Suppl
 
 **Note:** SEI metadata is embedded in Tesla dashcam videos since approximately 2019. Older videos may not contain this data.
 
-### Help Wanted
-
-We're actively working to improve Tesla dashcam SEI data visualization! If you have Tesla dashcam footage that you'd be willing to share for development purposes, please send it to **mail@viewdash.cam**. Your videos will never be shared publicly and will only be used to improve the telemetry visualization feature.
-
 ## Deployment
 
 The app automatically deploys to GitHub Pages when you push to the `main` branch. The deployment is handled by GitHub Actions.
