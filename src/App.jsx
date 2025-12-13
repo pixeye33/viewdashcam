@@ -76,6 +76,25 @@ function App() {
       .join(' ')
   }, [])
 
+  // Sort camera angles in the desired order
+  // Order: left_repeater -> left_pillar -> front -> right_pillar -> right_repeater -> back
+  const sortVideosByAngle = useCallback((videos) => {
+    const angleOrder = {
+      'left_repeater': 1,
+      'left_pillar': 2,
+      'front': 3,
+      'right_pillar': 4,
+      'right_repeater': 5,
+      'back': 6
+    }
+    
+    return [...videos].sort((a, b) => {
+      const orderA = angleOrder[a.angle.toLowerCase()] || 999
+      const orderB = angleOrder[b.angle.toLowerCase()] || 999
+      return orderA - orderB
+    })
+  }, [])
+
   const handleDragOver = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -198,6 +217,11 @@ function App() {
         dateTimeGroups[video.dateTime] = []
       }
       dateTimeGroups[video.dateTime].push(video)
+    })
+
+    // Sort videos by angle for each event
+    Object.keys(dateTimeGroups).forEach(eventKey => {
+      dateTimeGroups[eventKey] = sortVideosByAngle(dateTimeGroups[eventKey])
     })
 
     // Sort events by datetime (oldest first)
@@ -397,7 +421,7 @@ function App() {
   const handleEventSwitch = (eventKey) => {
     if (eventKey === selectedEvent) return
     
-    const eventVideos = allEvents[eventKey]
+    const eventVideos = sortVideosByAngle(allEvents[eventKey])
     
     // Pause current video before switching to prevent race condition
     if (mainVideoRef.current) {
