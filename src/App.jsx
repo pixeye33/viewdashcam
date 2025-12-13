@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 import { SeiOverlay } from './components/SeiOverlay'
+import { EventInfoModal } from './components/EventInfoModal'
 import { useSeiData } from './hooks/useSeiData'
+import { DISABLE_WEBCODECS } from './config'
+import protobuf from 'protobufjs'
 
 function App() {
   const [videos, setVideos] = useState([])
@@ -14,27 +17,48 @@ function App() {
   const [showEventsPanel, setShowEventsPanel] = useState(true) // Events panel visibility
   const [showControls, setShowControls] = useState(true) // Media controls visibility
   const [showHelpModal, setShowHelpModal] = useState(false) // Help modal visibility
+  const [showSeiModal, setShowSeiModal] = useState(false) // SEI data modal visibility
+  const [showEventInfoModal, setShowEventInfoModal] = useState(false) // Event info modal visibility
+  const [eventJsonData, setEventJsonData] = useState(null) // Store event.json data (single file for all events)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
   const [pendingAngleSwitch, setPendingAngleSwitch] = useState(null)
+  const [speedUnit, setSpeedUnit] = useState('kmh') // 'mph' or 'kmh'
+  const [isFrameByFrameMode, setIsFrameByFrameMode] = useState(false) // Track if user is in frame-by-frame mode
+  const [actualFps, setActualFps] = useState({}) // Store actual FPS for each angle
   
   const mainVideoRef = useRef(null)
+  const mainCanvasRef = useRef(null)
+  const webCodecsPlayerRef = useRef(null)
   const thumbnailRefsRef = useRef({})
+  const thumbnailCanvasRefsRef = useRef({})
+  const thumbnailWebCodecsPlayersRef = useRef({})
+  const frameCountsRef = useRef({}) // Store frame count for each angle
   const progressBarRef = useRef(null)
   const previewVideoRef = useRef(null)
   const previewCanvasRef = useRef(null)
   const hoverThrottleRef = useRef(null)
+  const SeiMetadataRef = useRef(null)
+  const isFrameByFrameModeRef = useRef(false) // Ref to track frame-by-frame mode synchronously
 
-  // Get front video file for SEI extraction (only from front angle)
-  const frontVideo = useMemo(() => {
-    const frontVid = videos.find(v => v.angle.toLowerCase() === 'front')
-    return frontVid?.file || null
+  // Get all video files for SEI extraction from all angles
+  const allVideoFiles = useMemo(() => {
+    return videos.map(v => ({ angle: v.angle, file: v.file }))
   }, [videos])
 
   // SEI data hook - extracts and provides SEI data based on current time
-  const { seiData, isLoading: seiLoading, error: seiError } = useSeiData(frontVideo, currentTime)
+  const { seiData, isLoading: seiLoading, error: seiError, allSeiMessages, allAnglesSeiData, frameCountsBySei, allAnglesSeiMessagesRef } = useSeiData(allVideoFiles, currentTime, duration, selectedAngle)
+
+  // Get current SEI data from WebCodecs player if available (only in frame-by-frame mode)
+  const currentSeiData = useMemo(() => {
+    if (isFrameByFrameMode && webCodecsPlayerRef.current) {
+      const sei = webCodecsPlayerRef.current.getCurrentSei()
+      return sei || allAnglesSeiData[selectedAngle] || null
+    }
+    return allAnglesSeiData[selectedAngle] || seiData
+  }, [isFrameByFrameMode, currentTime, allAnglesSeiData, selectedAngle, seiData])
 
   // Parse filename to extract datetime and angle
   // Pattern: YYYY-MM-DD_HH-MM-SS-angle.mp4
@@ -142,15 +166,21 @@ function App() {
     return files
   }
 
-  // Process a single entry (file or directory)
-  const processEntry = async (entry) => {
+  // Process a single entry (file or directory) with path tracking
+  const processEntry = async (entry, path = '') => {
     if (entry.isFile) {
       return new Promise((resolve) => {
-        entry.file((file) => resolve([file]), () => resolve([]))
+        entry.file((file) => {
+          // Add path info to the file object
+          const fileWithPath = new File([file], file.name, { type: file.type })
+          fileWithPath.folderPath = path
+          resolve([fileWithPath])
+        }, () => resolve([]))
       })
     } else if (entry.isDirectory) {
       const dirReader = entry.createReader()
       const files = []
+      const currentPath = path ? `${path}/${entry.name}` : entry.name
       
       // Read all entries in the directory
       const readEntries = async () => {
@@ -160,7 +190,7 @@ function App() {
               resolve()
             } else {
               for (const entry of entries) {
-                const entryFiles = await processEntry(entry)
+                const entryFiles = await processEntry(entry, currentPath)
                 files.push(...entryFiles)
               }
               // Continue reading (directories might have more than 100 entries)
@@ -183,8 +213,9 @@ function App() {
     processFiles(files)
   }
 
-  const processFiles = (files) => {
+  const processFiles = async (files) => {
     const videoFiles = files.filter(file => file.type.startsWith('video/'))
+    const jsonFiles = files.filter(file => file.name.toLowerCase() === 'event.json')
     
     if (videoFiles.length === 0) {
       alert('Please drop valid video files')
@@ -223,6 +254,19 @@ function App() {
     Object.keys(dateTimeGroups).forEach(eventKey => {
       dateTimeGroups[eventKey] = sortVideosByAngle(dateTimeGroups[eventKey])
     })
+
+    // Process event.json files - just take the first one found
+    let eventJson = null
+    if (jsonFiles.length > 0) {
+      try {
+        const text = await jsonFiles[0].text()
+        eventJson = JSON.parse(text)
+      } catch (error) {
+        console.error('Error parsing event.json:', error)
+      }
+    }
+
+    setEventJsonData(eventJson)
 
     // Sort events by datetime (oldest first)
     const sortedEventKeys = Object.keys(dateTimeGroups).sort()
@@ -266,25 +310,41 @@ function App() {
   // Synchronize all videos when main video plays/pauses
   const handleMainVideoPlay = () => {
     setIsPlaying(true)
-    Object.values(thumbnailRefsRef.current).forEach(ref => {
-      if (ref && ref.paused) {
-        ref.play().catch(() => {})
-      }
-    })
+    // Sync thumbnails when NOT in frame-by-frame mode
+    if (!isFrameByFrameMode) {
+      Object.values(thumbnailRefsRef.current).forEach(ref => {
+        if (ref && ref.paused) {
+          ref.play().catch(() => {})
+        }
+      })
+    }
   }
 
   const handleMainVideoPause = () => {
     setIsPlaying(false)
-    Object.values(thumbnailRefsRef.current).forEach(ref => {
-      if (ref && !ref.paused) {
-        ref.pause()
-      }
-    })
+    // Pause thumbnails when NOT in frame-by-frame mode
+    if (!isFrameByFrameMode) {
+      Object.values(thumbnailRefsRef.current).forEach(ref => {
+        if (ref && !ref.paused) {
+          ref.pause()
+        }
+      })
+    }
   }
 
   const handleLoadedMetadata = () => {
     if (mainVideoRef.current) {
-      setDuration(mainVideoRef.current.duration)
+      const videoDuration = mainVideoRef.current.duration
+      setDuration(videoDuration)
+      
+      // Calculate actual FPS for current angle if we have frame count
+      if (selectedAngle && frameCountsBySei[selectedAngle] && videoDuration > 0) {
+        const calculatedFps = frameCountsBySei[selectedAngle] / videoDuration
+        setActualFps(prev => ({
+          ...prev,
+          [selectedAngle]: calculatedFps
+        }))
+      }
     }
   }
 
@@ -295,11 +355,14 @@ function App() {
     const currentTime = mainVideoRef.current.currentTime
     setCurrentTime(currentTime)
     
-    Object.values(thumbnailRefsRef.current).forEach(ref => {
-      if (ref && Math.abs(ref.currentTime - currentTime) > 0.3) {
-        ref.currentTime = currentTime
-      }
-    })
+    // Sync thumbnails when NOT in frame-by-frame mode
+    if (!isFrameByFrameMode) {
+      Object.values(thumbnailRefsRef.current).forEach(ref => {
+        if (ref && Math.abs(ref.currentTime - currentTime) > 0.3) {
+          ref.currentTime = currentTime
+        }
+      })
+    }
   }
 
   // Sync seeking
@@ -307,42 +370,140 @@ function App() {
     if (!mainVideoRef.current) return
     
     const currentTime = mainVideoRef.current.currentTime
-    Object.values(thumbnailRefsRef.current).forEach(ref => {
-      if (ref) {
-        ref.currentTime = currentTime
-      }
-    })
+    
+    // Sync thumbnails when NOT in frame-by-frame mode
+    if (!isFrameByFrameMode) {
+      Object.values(thumbnailRefsRef.current).forEach(ref => {
+        if (ref) {
+          ref.currentTime = currentTime
+        }
+      })
+    }
   }
+
+  // Note: WebCodecs playback loop removed - only using WebCodecs for frame-by-frame navigation
 
   // Custom playback controls
   const togglePlayPause = () => {
-    if (mainVideoRef.current) {
-      if (isPlaying) {
-        mainVideoRef.current.pause()
-      } else {
-        mainVideoRef.current.play()
-      }
+    if (!mainVideoRef.current) return
+    
+    // Exit frame-by-frame mode when playing
+    if (!isPlaying) {
+      isFrameByFrameModeRef.current = false
+      setIsFrameByFrameMode(false)
+      
+      // Clear all WebCodecs caches when exiting frame-by-frame mode
+      // This ensures smooth transition back to normal video playback
+      Object.values(thumbnailWebCodecsPlayersRef.current).forEach(player => {
+        if (player && player.clearCache) {
+          player.clearCache()
+        }
+      })
+    }
+    
+    if (isPlaying) {
+      mainVideoRef.current.pause()
+    } else {
+      mainVideoRef.current.play()
     }
   }
 
-  const seekToFrame = (forward = true) => {
-    if (mainVideoRef.current) {
-      // Pause playback when using frame by frame navigation
-      if (!mainVideoRef.current.paused) {
-        mainVideoRef.current.pause()
+  const seekToFrame = async (forward = true) => {
+    // Skip if WebCodecs is disabled
+    if (DISABLE_WEBCODECS) {
+      console.warn('Frame-by-frame navigation disabled: WebCodecs is turned off')
+      return
+    }
+    
+    // Pause playback
+    if (mainVideoRef.current && !mainVideoRef.current.paused) {
+      mainVideoRef.current.pause()
+    }
+    
+    if (webCodecsPlayerRef.current) {
+      const player = webCodecsPlayerRef.current
+      
+      // If entering frame-by-frame mode for the first time, sync to current video position
+      if (!isFrameByFrameModeRef.current && mainVideoRef.current) {
+        const currentVideoTime = mainVideoRef.current.currentTime * 1000 // Convert to ms
+        const currentIndex = player.getFrameIndexAtTime(currentVideoTime)
+        
+        // Enter frame-by-frame mode
+        isFrameByFrameModeRef.current = true
+        setIsFrameByFrameMode(true)
+        
+        // Show current frame first to sync position
+        await player.showFrame(currentIndex)
+        
+        // Sync all thumbnail players to the same time
+        const syncPromises = Object.entries(thumbnailWebCodecsPlayersRef.current).map(async ([angle, thumbPlayer]) => {
+          if (thumbPlayer && thumbPlayer.frames.length > 0 && angle !== selectedAngle) {
+            const thumbIndex = thumbPlayer.getFrameIndexAtTime(currentVideoTime)
+            await thumbPlayer.showFrame(thumbIndex)
+          }
+        })
+        await Promise.all(syncPromises)
+      } else {
+        // Already in frame-by-frame mode, just ensure state is set
+        isFrameByFrameModeRef.current = true
+        setIsFrameByFrameMode(true)
       }
       
-      const frameRate = 30 // Assume 30fps
-      const frameTime = 1 / frameRate
-      const newTime = mainVideoRef.current.currentTime + (forward ? frameTime : -frameTime)
-      mainVideoRef.current.currentTime = Math.max(0, Math.min(newTime, duration))
+      // Now move to the next/previous frame
+      const newIndex = forward 
+        ? Math.min(player.currentFrameIndex + 1, player.frames.length - 1)
+        : Math.max(player.currentFrameIndex - 1, 0)
+      
+      await player.showFrame(newIndex)
+      
+      const frame = player.getFrame(newIndex)
+      if (frame) {
+        const timeSeconds = frame.timestamp / 1000
+        setCurrentTime(timeSeconds)
+        
+        // Sync all thumbnail WebCodecs players to the same time
+        // Skip the current angle since we already showed its frame above
+        const syncPromises = Object.entries(thumbnailWebCodecsPlayersRef.current).map(async ([angle, thumbPlayer]) => {
+          if (thumbPlayer && thumbPlayer.frames.length > 0 && angle !== selectedAngle) {
+            const thumbIndex = thumbPlayer.getFrameIndexAtTime(frame.timestamp)
+            await thumbPlayer.showFrame(thumbIndex)
+          }
+        })
+        
+        await Promise.all(syncPromises)
+      }
     }
   }
 
-  const jumpTime = (seconds) => {
-    if (mainVideoRef.current) {
-      const newTime = mainVideoRef.current.currentTime + seconds
-      mainVideoRef.current.currentTime = Math.max(0, Math.min(newTime, duration))
+  const jumpTime = async (seconds) => {
+    if (!mainVideoRef.current) return
+    
+    const newTime = mainVideoRef.current.currentTime + seconds
+    const clampedTime = Math.max(0, Math.min(newTime, duration))
+    mainVideoRef.current.currentTime = clampedTime
+    
+    // If in frame-by-frame mode and WebCodecs is available, sync all players
+    if (isFrameByFrameMode && webCodecsPlayerRef.current) {
+      const player = webCodecsPlayerRef.current
+      const newTimeMs = clampedTime * 1000
+      const newIndex = player.getFrameIndexAtTime(newTimeMs)
+      await player.showFrame(newIndex)
+      
+      const frame = player.getFrame(newIndex)
+      if (frame) {
+        setCurrentTime(frame.timestamp / 1000)
+        
+        // Sync all thumbnail WebCodecs players
+        // Skip the current angle since we already showed its frame above
+        const syncPromises = Object.entries(thumbnailWebCodecsPlayersRef.current).map(async ([angle, thumbPlayer]) => {
+          if (thumbPlayer && thumbPlayer.frames.length > 0 && angle !== selectedAngle) {
+            const thumbIndex = thumbPlayer.getFrameIndexAtTime(frame.timestamp)
+            await thumbPlayer.showFrame(thumbIndex)
+          }
+        })
+        
+        await Promise.all(syncPromises)
+      }
     }
   }
 
@@ -358,13 +519,39 @@ function App() {
     })
   }
 
-  const handleProgressClick = (e) => {
+  const handleProgressClick = async (e) => {
     if (!progressBarRef.current || !mainVideoRef.current) return
     
     const rect = progressBarRef.current.getBoundingClientRect()
     const pos = (e.clientX - rect.left) / rect.width
     const newTime = pos * duration
+
     mainVideoRef.current.currentTime = newTime
+    
+    // If in frame-by-frame mode and WebCodecs is available, sync all players
+    if (isFrameByFrameMode && webCodecsPlayerRef.current) {
+      const player = webCodecsPlayerRef.current
+      const newTimeMs = newTime * 1000
+      const newIndex = player.getFrameIndexAtTime(newTimeMs)
+      
+      await player.showFrame(newIndex)
+      
+      const frame = player.getFrame(newIndex)
+      if (frame) {
+        setCurrentTime(frame.timestamp / 1000)
+        
+        // Sync all thumbnail WebCodecs players
+        // Skip the current angle since we already showed its frame above
+        const syncPromises = Object.entries(thumbnailWebCodecsPlayersRef.current).map(async ([angle, thumbPlayer]) => {
+          if (thumbPlayer && thumbPlayer.frames.length > 0 && angle !== selectedAngle) {
+            const thumbIndex = thumbPlayer.getFrameIndexAtTime(frame.timestamp)
+            await thumbPlayer.showFrame(thumbIndex)
+          }
+        })
+        
+        await Promise.all(syncPromises)
+      }
+    }
   }
 
   const handleProgressHover = useCallback((e) => {
@@ -453,6 +640,13 @@ function App() {
   }
 
   const handleClearVideos = () => {
+    // Clear all WebCodecs caches before clearing videos
+    Object.values(thumbnailWebCodecsPlayersRef.current).forEach(player => {
+      if (player && player.clearCache) {
+        player.clearCache()
+      }
+    })
+    
     // Clean up URLs for all events
     Object.values(allEvents).forEach(eventVideos => {
       eventVideos.forEach(video => {
@@ -465,6 +659,7 @@ function App() {
     setCurrentTime(0)
     setAllEvents({})
     setSelectedEvent(null)
+    setEventJsonData(null)
     setIsPlaying(false)
     setPlaybackRate(1)
     setDuration(0)
@@ -557,6 +752,12 @@ function App() {
         changePlaybackSpeed(2)
       }
       
+      // SEI Debug modal toggle
+      if (e.code === 'KeyD') {
+        e.preventDefault()
+        setShowSeiModal(prev => !prev)
+      }
+      
       // Direct angle selection with number keys (only if videos are loaded)
       if (videos.length > 0) {
         // Arrow keys for cycling through angles
@@ -597,6 +798,116 @@ function App() {
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
 
+  // Initialize WebCodecs players for all videos ONCE (for frame-by-frame mode)
+  useEffect(() => {
+    if (!videos || videos.length === 0) return
+    
+    // Skip WebCodecs initialization if disabled
+    if (DISABLE_WEBCODECS) {
+      return
+    }
+
+    async function initWebCodecsPlayers() {
+      try {
+        // Dynamically import WebCodecs module only when needed
+        const { WebCodecsPlayer } = await import('./utils/webcodecs-decoder')
+        
+        // Check WebCodecs support
+        if (typeof VideoDecoder === 'undefined') {
+          console.warn('WebCodecs not supported - frame-by-frame navigation will be less accurate')
+          return
+        }
+
+        // Initialize protobuf if not already done
+        if (!SeiMetadataRef.current) {
+          const response = await fetch('/dashcam.proto')
+          const protoText = await response.text()
+          const root = protobuf.parse(protoText, { keepCase: true }).root
+          SeiMetadataRef.current = root.lookupType('SeiMetadata')
+        }
+
+        const allPlayers = {}
+        const frameCounts = {}
+        
+        // Create WebCodecs players for all angles (using thumbnail canvases)
+        for (const video of videos) {
+          const canvas = thumbnailCanvasRefsRef.current[video.angle]
+          
+          if (!canvas) {
+            console.warn(`Canvas not ready for ${video.angle}, waiting...`)
+            continue
+          }
+          
+          const player = new WebCodecsPlayer(canvas)
+          const { duration, frameCount } = await player.load(video.file, SeiMetadataRef.current)
+          
+          allPlayers[video.angle] = player
+          frameCounts[video.angle] = frameCount
+        }
+        
+        // Store all players and frame counts
+        thumbnailWebCodecsPlayersRef.current = allPlayers
+        frameCountsRef.current = frameCounts
+        webCodecsPlayerRef.current = allPlayers[selectedAngle] || null
+      } catch (err) {
+        console.error('WebCodecs initialization failed:', err)
+      }
+    }
+
+    // Small delay to ensure canvas refs are set
+    const timer = setTimeout(initWebCodecsPlayers, 100)
+
+    return () => {
+      clearTimeout(timer)
+      // Cleanup all players when videos change
+      webCodecsPlayerRef.current = null
+      
+      Object.values(thumbnailWebCodecsPlayersRef.current).forEach(player => {
+        if (player && player.dispose) {
+          player.dispose()
+        }
+      })
+      thumbnailWebCodecsPlayersRef.current = {}
+    }
+  }, [videos]) // Only depend on videos, not selectedAngle
+  
+  // Update webCodecsPlayerRef when angle changes (just switch reference, no reload)
+  useEffect(() => {
+    if (selectedAngle && thumbnailWebCodecsPlayersRef.current[selectedAngle]) {
+      webCodecsPlayerRef.current = thumbnailWebCodecsPlayersRef.current[selectedAngle]
+    }
+  }, [selectedAngle])
+  
+  // Copy selected angle's canvas to main canvas in frame-by-frame mode
+  useEffect(() => {
+    if (!isFrameByFrameMode || !mainCanvasRef.current || !selectedAngle) return
+    
+    const copyToMain = () => {
+      const sourceCanvas = thumbnailCanvasRefsRef.current[selectedAngle]
+      const destCanvas = mainCanvasRef.current
+      
+      if (!sourceCanvas || !destCanvas) return
+      
+      // Match dimensions
+      if (destCanvas.width !== sourceCanvas.width || destCanvas.height !== sourceCanvas.height) {
+        destCanvas.width = sourceCanvas.width
+        destCanvas.height = sourceCanvas.height
+      }
+      
+      // Copy content
+      const ctx = destCanvas.getContext('2d')
+      ctx.drawImage(sourceCanvas, 0, 0)
+    }
+    
+    // Copy immediately
+    copyToMain()
+    
+    // Set up observer to copy when source canvas changes
+    const interval = setInterval(copyToMain, 16) // ~60fps
+    
+    return () => clearInterval(interval)
+  }, [isFrameByFrameMode, selectedAngle])
+
   return (
     <div 
       className={`app-container ${isDragging ? 'dragging' : ''}`}
@@ -622,24 +933,32 @@ function App() {
               />
             </svg>
             <h1>ViewDashCam</h1>
-            <p className="tagline">Synchronized multi-angle dashcam video player</p>
+            <p className="tagline">Professional dashcam footage analysis - right in your browser</p>
             
             <div className="features-brief">
               <div className="feature-item">
-                <span className="feature-icon">📹</span>
-                <span>View multiple camera angles in perfect sync</span>
-              </div>
-              <div className="feature-item">
-                <span className="feature-icon">🚗</span>
-                <span>Built-in Tesla telemetry overlay (speed, gear, GPS, etc.)</span>
+                <span className="feature-icon">🎥</span>
+                <span><strong>Perfect Multi-Angle Sync</strong> - View up to 6 camera angles simultaneously, all perfectly synchronized</span>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">⚡</span>
-                <span>Frame-by-frame navigation & variable speed playback</span>
+                <span><strong>Frame-by-Frame Precision</strong> - Step through footage one frame at a time with WebCodecs technology</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🚗</span>
+                <span><strong>Tesla Telemetry Overlay</strong> - Real-time speed, gear, steering, brakes, GPS, acceleration, autopilot state & more</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">📊</span>
+                <span><strong>Visual Timeline</strong> - Brake indicators show exactly when braking occurred on the progress bar</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🎮</span>
+                <span><strong>Complete Keyboard Control</strong> - Navigate, seek, and switch angles without touching your mouse</span>
               </div>
               <div className="feature-item">
                 <span className="feature-icon">🔒</span>
-                <span>100% private & free - all processing happens in your browser</span>
+                <span><strong>100% Private & Secure</strong> - All processing happens locally. No uploads, no tracking, completely free</span>
               </div>
             </div>
 
@@ -701,7 +1020,7 @@ function App() {
                 </div>
               )}
 
-              {/* Clear Button and Help Button */}
+              {/* Clear Button, Event Info Button, and Help Button */}
               <div className="top-buttons">
                 <button 
                   className="clear-button"
@@ -709,6 +1028,15 @@ function App() {
                 >
                   Choose Other Videos
                 </button>
+                {eventJsonData && (
+                  <button 
+                    className="event-info-button"
+                    onClick={() => setShowEventInfoModal(true)}
+                    title="View event information from event.json"
+                  >
+                    Event Info
+                  </button>
+                )}
                 <button 
                   className="help-button"
                   onClick={() => setShowHelpModal(true)}
@@ -737,7 +1065,8 @@ function App() {
           <div className="main-player">
             {selectedVideo && (
               <>
-                 <video
+                {/* Always render video element for smooth playback */}
+                <video
                   ref={mainVideoRef}
                   src={selectedVideo.url}
                   className="video-player main"
@@ -746,9 +1075,17 @@ function App() {
                   onTimeUpdate={handleMainVideoTimeUpdate}
                   onSeeking={handleMainVideoSeeking}
                   onLoadedMetadata={handleLoadedMetadata}
+                  style={{ display: isFrameByFrameMode ? 'none' : 'block' }}
                 >
                   Your browser does not support the video tag.
                 </video>
+                
+                {/* Canvas for frame-by-frame mode - copies from selected angle's canvas */}
+                <canvas
+                  ref={mainCanvasRef}
+                  className="video-player main"
+                  style={{ display: isFrameByFrameMode ? 'block' : 'none' }}
+                />
 
                 {/* Hidden preview video for frame capture */}
                 <video
@@ -759,14 +1096,17 @@ function App() {
                   style={{ display: 'none' }}
                 />
 
-                {/* SEI Overlay - only show for front angle */}
-                {selectedAngle?.toLowerCase() === 'front' && (
-                  <SeiOverlay 
-                    seiData={seiData} 
-                    isLoading={seiLoading} 
-                    error={seiError} 
-                  />
-                )}
+                {/* SEI Overlay - show for currently selected angle */}
+                <SeiOverlay 
+                  seiData={currentSeiData} 
+                  isLoading={seiLoading} 
+                  error={seiError}
+                  currentAngle={selectedAngle}
+                  speedUnit={speedUnit}
+                  onSpeedUnitToggle={() => setSpeedUnit(prev => prev === 'mph' ? 'kmh' : 'mph')}
+                  onDebugClick={() => setShowSeiModal(true)}
+                  isHighPrecision={isFrameByFrameMode && webCodecsPlayerRef.current?.getCurrentSei() !== null}
+                />
 
                  {/* Custom Controls - Part of overlay */}
                 {showControls && <div className="custom-controls">
@@ -875,9 +1215,41 @@ function App() {
               onMouseLeave={handleProgressLeave}
             >
               <div className="progress-bar-bg">
+                {/* Brake indicators - each frame as a block */}
+                {allSeiMessages && allSeiMessages.length > 0 && duration > 0 && selectedAngle && (() => {
+                  // Use computed FPS for the selected angle
+                  const totalFrames = frameCountsBySei[selectedAngle];
+                  if (!totalFrames) return null;
+                  
+                  const fps = totalFrames / duration;
+                  const frameWidth = (100 / totalFrames); // Width per frame in percentage
+                  
+                  return allSeiMessages.map((msg, idx) => {
+                    const timePosition = msg.frameIndex / fps;
+                    const percentPosition = (timePosition / duration) * 100;
+                    
+                    const hasBrake = msg.sei?.brake_applied;
+                    
+                    if (!hasBrake) return null;
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className="brake-indicator"
+                        style={{ 
+                          left: `${percentPosition}%`, 
+                          width: `${frameWidth}%`,
+                          backgroundColor: '#ff4444'
+                        }}
+                        title={`Brake at ${formatTime(timePosition)}`}
+                      />
+                    );
+                  });
+                })()}
+                {/* Current position indicator - thin bar on top */}
                 <div 
-                  className="progress-bar-fill"
-                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                  className="progress-position-indicator"
+                  style={{ left: `${(currentTime / duration) * 100}%` }}
                 />
                 {previewTime !== null && (
                   <div 
@@ -906,6 +1278,7 @@ function App() {
                 className={`thumbnail-wrapper ${video.angle === selectedAngle ? 'active' : ''}`}
                 onClick={() => handleThumbnailClick(video.angle)}
               >
+                {/* Video element for normal playback */}
                 <video
                   ref={(el) => {
                     thumbnailRefsRef.current[video.angle] = el
@@ -913,13 +1286,96 @@ function App() {
                   src={video.url}
                   className="video-player thumbnail"
                   muted
+                  style={{ display: isFrameByFrameMode ? 'none' : 'block' }}
                 >
                   Your browser does not support the video tag.
                 </video>
+                
+                {/* Canvas for frame-by-frame mode */}
+                <canvas
+                  ref={(el) => {
+                    thumbnailCanvasRefsRef.current[video.angle] = el
+                  }}
+                  className="video-player thumbnail"
+                  style={{ display: isFrameByFrameMode ? 'block' : 'none' }}
+                />
+                
                 <div className="thumbnail-label">{formatAngleName(video.angle)}</div>
               </div>
             ))}
           </div>
+
+          {/* SEI Debug Modal */}
+          {showSeiModal && (
+            <div className="modal-overlay" onClick={() => setShowSeiModal(false)}>
+              <div className="modal-content sei-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>Raw SEI Data - Frame {(() => {
+                    const totalFrames = frameCountsBySei[selectedAngle];
+                    if (!totalFrames || !duration) return Math.floor(currentTime);
+                    const fps = totalFrames / duration;
+                    return Math.floor(currentTime * fps);
+                  })()}{Object.keys(frameCountsRef.current).length > 0 && ` / ${frameCountsRef.current[selectedAngle] || 'N/A'} total`}</h2>
+                  <button className="modal-close" onClick={() => setShowSeiModal(false)}>×</button>
+                </div>
+                <div className="modal-body sei-modal-body">
+                  {Object.keys(allAnglesSeiData).length === 0 ? (
+                    <div className="sei-no-data">No SEI data available at this time</div>
+                  ) : (
+                    <>
+                      <div className="sei-table-wrapper">
+                        <table 
+                          className="sei-data-table"
+                          style={{ '--angle-count': Object.keys(allAnglesSeiData).length }}
+                        >
+                          <thead>
+                            <tr>
+                              <th>Metric</th>
+                              {Object.keys(allAnglesSeiData).map(angle => (
+                                <th key={angle}>{formatAngleName(angle)}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              // Collect all unique fields across all angles
+                              const allFields = new Set();
+                              Object.values(allAnglesSeiData).forEach(data => {
+                                Object.keys(data).forEach(field => allFields.add(field));
+                              });
+                              
+                              // Sort fields alphabetically for consistent display
+                              const sortedFields = Array.from(allFields).sort();
+                              
+                              return sortedFields.map(field => (
+                                <tr key={field}>
+                                  <td className="sei-metric-name">{field}</td>
+                                  {Object.keys(allAnglesSeiData).map(angle => {
+                                    const value = allAnglesSeiData[angle][field];
+                                    return (
+                                      <td key={angle} className="sei-metric-value">
+                                        {value === null || value === undefined 
+                                          ? <span className="sei-null-value">null</span>
+                                          : typeof value === 'boolean'
+                                          ? value.toString()
+                                          : typeof value === 'number'
+                                          ? value.toFixed(6).replace(/\.?0+$/, '')
+                                          : value.toString()}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Help Modal */}
           {showHelpModal && (
@@ -1001,10 +1457,22 @@ function App() {
                       <span className="shortcut-key">Click Date/Time</span>
                       <span className="shortcut-desc">Toggle Controls & Events</span>
                     </div>
+                    <div className="shortcut-item">
+                      <span className="shortcut-key">D</span>
+                      <span className="shortcut-desc">Toggle SEI Debug Modal</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Event Info Modal */}
+          {showEventInfoModal && eventJsonData && (
+            <EventInfoModal 
+              eventData={eventJsonData}
+              onClose={() => setShowEventInfoModal(false)}
+            />
           )}
         </div>
       )}

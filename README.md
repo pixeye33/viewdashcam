@@ -2,56 +2,70 @@
 
 > **Note:** This project is entirely coded by AI. A secondary goal of this project is to see how bad of a dev I can be and still have a working project.
 
-A frontend-only React app for synchronized multi-angle video playback. Perfect for dashcam footage review and any scenario where you need to view multiple camera angles of the same event. Built with React and Vite.
-
-## What Problem Does It Solve?
-
-If you have **dashcam footage** or **multi-camera recordings** from different angles, ViewDashCam helps you:
-- **Review incidents efficiently** by viewing all camera angles simultaneously
-- **Manage multiple events** in a single session (e.g., multiple trips or incidents)
-- **Stay synchronized** - all angles play together perfectly aligned
-- **Maintain privacy** - everything processes locally in your browser, no uploads required
-
-## Features
-
-### Core Playback
-- **Multi-Event Support** - Load videos from multiple events/incidents and switch between them instantly
-- **Multi-Angle Synchronized Playback** - View all camera angles of an event in perfect sync
-- **Smart Panel Hiding** - Events panel auto-hides for single events, toggle by clicking the datetime
-- **Drag and drop** video files or entire folders to play them instantly
-- **Browser-based playback** - supports all common video formats (MP4, WebM, OGG, etc.)
-
-### Advanced Controls
-- **Frame-by-Frame Navigation** - Step through videos one frame at a time (30fps)
-- **Variable Playback Speed** - From 0.25x to 2x speed with keyboard shortcuts
-- **Time Seeking** - Jump forward/backward 10 seconds or click the progress bar
-- **Video Preview** - Hover over progress bar to see thumbnail preview and timestamp
-- **Keyboard Shortcuts** - Complete keyboard control for efficient video review
-
-### Tesla Dashcam Integration
-- **SEI Metadata Overlay** - Displays real-time vehicle telemetry from Tesla dashcam videos (front camera):
-  - **Speed** (mph/km/h)
-  - **Gear State** (P/D/R/N)
-  - **Steering Wheel Angle** with visual indicator
-  - **Accelerator Pedal Position**
-  - **Brake Status**
-  - **Blinker Indicators**
-  - **Autopilot State** (Self Driving/Autosteer/TACC)
-  - **GPS Coordinates & Heading**
-  - **Linear Acceleration** (X/Y/Z axes)
-
-### User Experience
-- **Clean, modern UI** with smooth animations and responsive design
-- **Intuitive Controls** - Toggle visibility with a click on the datetime
-- **Help Modal** - Built-in keyboard shortcuts reference
-
-## Privacy & Security
-
-**All processing happens locally in your browser.** No data is uploaded to any server. Your video files never leave your device. The app is completely frontend-only and works entirely offline after the initial page load.
+A powerful, privacy-focused web app for reviewing multi-angle dashcam footage. ViewDashCam provides synchronized playback, frame-by-frame analysis, and real-time telemetry overlays for Tesla vehicles - all running 100% in your browser with zero uploads.
 
 ## Live Demo
 
-The app is deployed at: [https://viewdash.cam/](https://viewdash.cam/)
+Try it now at: [https://viewdash.cam/](https://viewdash.cam/)
+
+## Major Features
+
+### 🎥 Perfect Multi-Angle Sync
+View up to 6 camera angles simultaneously, all perfectly synchronized. Switch between angles instantly while maintaining playback position across all views.
+
+### ⚡ Frame-by-Frame Precision
+Step through footage one frame at a time using WebCodecs technology. Perfect for analyzing critical moments or reviewing incidents in detail.
+
+### 🚗 Tesla Telemetry Overlay
+ViewDashCam automatically extracts and displays real-time vehicle data from Tesla dashcam videos:
+- **Speed** (mph/km/h with unit toggle)
+- **Gear State** (P/D/R/N)
+- **Steering Wheel Angle** with visual indicator
+- **Accelerator & Brake Status**
+- **Turn Signals & Blinkers**
+- **Autopilot State** (None/Self Driving/Autosteer/TACC) - Always visible
+- **GPS Coordinates & Heading**
+- **3-Axis Acceleration** (X/Y/Z)
+
+### 📊 Visual Timeline with Brake Indicators
+See exactly when braking occurred with visual markers on the progress bar - instantly identify important moments without scrubbing through footage.
+
+### 🎮 Complete Keyboard Control
+Navigate your footage efficiently with comprehensive keyboard shortcuts for playback, speed control, and angle switching.
+
+### 🔒 100% Private & Secure
+All video processing happens in your browser. No uploads, no servers, no data collection. Your footage never leaves your device.
+
+## All Features
+
+### Multi-Angle Playback
+- **Synchronized Playback** - All camera angles stay perfectly in sync
+- **Multi-Event Management** - Load and switch between multiple incidents/trips
+- **Drag & Drop** - Drop video files or entire folders to start instantly
+- **Smart UI** - Events panel auto-hides for single events
+- **Supports all formats** - MP4, WebM, OGG, MOV, etc.
+
+### Precision Controls
+- **Frame-by-Frame Navigation** - Step through videos one frame at a time using arrow keys
+- **WebCodecs Integration** - Hardware-accelerated frame rendering for smooth navigation
+- **Variable Speed** - 0.25x to 2x playback speed with one-key shortcuts (Q/W/E/R/T/Y)
+- **Quick Seek** - Jump 10 seconds forward/backward
+- **Interactive Progress Bar** - Click to seek, hover for preview thumbnails
+- **Visual Brake Timeline** - Red markers show exactly when brakes were applied
+
+### Tesla Integration
+- **Automatic SEI Detection** - Extracts embedded telemetry from Tesla videos
+- **Real-Time Overlay** - All vehicle data displayed in sync with video
+- **Multi-Angle Support** - View telemetry from any camera angle
+- **Speed Unit Toggle** - Switch between mph and km/h
+- **Debug Mode** - View raw telemetry data across all angles (press 'D')
+
+### User Experience
+- **Clean Modern UI** - Minimalist design that stays out of your way
+- **Full Keyboard Control** - Navigate everything without touching the mouse
+- **Help System** - Built-in shortcuts reference (click Help button)
+- **Responsive Design** - Works on desktop and large tablets
+- **No Installation** - Run directly from your browser
 
 ## Local Development
 

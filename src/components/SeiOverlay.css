@@ -8,7 +8,182 @@
   pointer-events: none;
   z-index: 100;
   font-family: 'Courier New', monospace;
+  width: 200px;
+  min-width: 200px;
   max-width: 200px;
+}
+
+/* High Precision Indicator */
+.sei-precision-indicator {
+  pointer-events: auto;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.15));
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.6);
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  animation: precision-pulse 2s ease-in-out infinite;
+}
+
+.sei-precision-indicator:hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 165, 0, 0.25));
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Disabled state for standard mode */
+.sei-precision-indicator.disabled {
+  background: rgba(0, 0, 0, 0.75);
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+  animation: none;
+}
+
+.sei-precision-indicator.disabled:hover {
+  background: rgba(0, 0, 0, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: none;
+}
+
+.sei-precision-indicator.disabled .precision-icon {
+  filter: none;
+  opacity: 0.4;
+}
+
+.precision-icon {
+  font-size: 14px;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
+  transition: all 0.2s ease;
+}
+
+.precision-text {
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 10px;
+}
+
+@keyframes precision-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+}
+
+/* Precision Modal Content Styles */
+.modal-header h2 .precision-icon {
+  font-size: 1.5rem;
+}
+
+.modal-body {
+  color: white;
+}
+
+.precision-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.precision-method {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.precision-method-active {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.precision-method-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.precision-method-active .precision-method-title {
+  color: #667eea;
+}
+
+.precision-method-desc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.precision-accuracy {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.precision-method-active .precision-accuracy {
+  background: rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  border-color: rgba(102, 126, 234, 0.4);
+}
+
+.precision-tip {
+  background: rgba(102, 126, 234, 0.15);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 24px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.precision-tip strong {
+  color: #667eea;
+}
+
+.sei-debug-button {
+  pointer-events: auto;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #00ff00;
+  border: 1px solid rgba(0, 255, 0, 0.4);
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sei-debug-button:hover {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: rgba(0, 255, 0, 0.6);
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
 }
 
 .sei-message {
@@ -74,6 +249,13 @@
 /* Speed Component */
 .sei-speed {
   border-color: rgba(0, 255, 0, 0.4);
+  pointer-events: auto;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sei-speed:hover {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: rgba(0, 255, 0, 0.6);
 }
 
 /* Gear Component */
@@ -88,7 +270,7 @@
 /* Steering Component */
 .sei-steering-indicator {
   position: relative;
-  height: 40px;
+  height: 60px;
   width: 100%;
   margin-top: 6px;
   display: flex;
@@ -96,13 +278,11 @@
   justify-content: center;
 }
 
-.sei-steering-bar {
-  width: 4px;
-  height: 30px;
-  background: linear-gradient(to bottom, #ff9500, #ff5500);
-  border-radius: 2px;
+.sei-steering-wheel {
+  width: 50px;
+  height: 50px;
   transition: transform 0.1s ease;
-  box-shadow: 0 0 8px rgba(255, 149, 0, 0.6);
+  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(100, 149, 237, 0.8)) drop-shadow(0 0 20px rgba(100, 149, 237, 0.6));
 }
 
 /* Pedal Component */
@@ -174,11 +354,18 @@
 /* Autopilot Component */
 .sei-autopilot {
   border-color: rgba(100, 149, 237, 0.5);
-  background: rgba(100, 149, 237, 0.1);
 }
 
 .sei-autopilot .sei-value-medium {
   color: #6495ed;
+}
+
+.sei-autopilot.sei-autopilot-inactive {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sei-autopilot.sei-autopilot-inactive .sei-value-medium {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* GPS Component */
@@ -202,10 +389,30 @@
   text-align: left;
 }
 
+/* Camera Angle Indicator */
+.sei-camera-angle {
+  border-color: rgba(100, 200, 255, 0.5);
+  background: rgba(0, 0, 0, 0.85);
+  box-shadow: 0 0 10px rgba(100, 200, 255, 0.3);
+  min-width: 0;
+}
+
+.sei-camera-angle .sei-value-medium {
+  color: #64c8ff;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  text-shadow: 0 0 8px rgba(100, 200, 255, 0.5);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .sei-overlay {
     right: 5px;
+    width: 160px;
+    min-width: 160px;
     max-width: 160px;
     gap: 6px;
   }

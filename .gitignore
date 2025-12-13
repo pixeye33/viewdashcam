@@ -32,3 +32,5 @@ server.js
 *.njsproj
 *.sln
 *.sw?
+TODO.md
+AGENTS.md
