@@ -16,7 +16,6 @@ export function SeiOverlay({
   currentAngle, 
   speedUnit = 'mph', 
   onSpeedUnitToggle, 
-  onDebugClick, 
   isHighPrecision = false,
   layoutId = 'default'
 }) {
@@ -35,7 +34,6 @@ export function SeiOverlay({
         currentAngle={currentAngle}
         speedUnit={speedUnit}
         onSpeedUnitToggle={onSpeedUnitToggle}
-        onDebugClick={onDebugClick}
         isHighPrecision={isHighPrecision}
       />
     </div>

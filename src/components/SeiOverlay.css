@@ -117,7 +117,6 @@
 
 .precision-text {
   font-weight: bold;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 10px;
 }
@@ -239,7 +238,6 @@
 .sei-label {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
@@ -363,15 +361,26 @@
 }
 
 .sei-blinker-indicator {
-  font-size: 20px;
-  color: rgba(255, 165, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
   transition: all 0.2s ease;
 }
 
 .sei-blinker-indicator.sei-blinker-active {
-  color: #ffa500;
-  text-shadow: 0 0 10px rgba(255, 165, 0, 0.8);
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.8));
   animation: blink 0.5s infinite;
+}
+
+.sei-blinker-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sei-blinker-icon-right {
+  transform: rotate(180deg);
 }
 
 @keyframes blink {

@@ -1,0 +1,296 @@
+/* Minimal Layout - Compact top card design */
+
+.sei-overlay-minimal {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(225, 225, 225, 0.80);
+  border-radius: 16px;
+  align-items: center;
+
+  pointer-events: none;
+  z-index: 5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Compact Card Container - 5 Column Layout */
+.minimal-card {
+  
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  padding: 15px;
+  align-items: center;
+  pointer-events: auto;
+}
+
+/* Column wrapper for vertical stacking */
+.card-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Autopilot State Label - Below card */
+.minimal-label {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 400;
+  color: #4a90e2;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.60);
+  border-radius: 0 0 16px 16px;
+  pointer-events: none;
+}
+
+
+
+/* Shared base class for grey circles */
+.card-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Gear Indicator */
+.card-gear {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4a4a4a;
+}
+
+.wheel-icon {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) saturate(100%) invert(29%) sepia(0%) saturate(0%) hue-rotate(183deg) brightness(95%) contrast(87%);
+  transition: transform 0.1s ease-out;
+}
+
+/* Pedal Icons */
+.pedal-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Brake Pedal - Active State */
+.card-brake.brake-active {
+  background-color: #ff4444;
+  transition: background-color 0.2s ease;
+}
+
+.card-brake {
+  transition: background-color 0.2s ease;
+}
+
+/* Accelerator Gauge */
+.card-accelerator {
+  position: relative;
+  overflow: hidden;
+}
+
+.accelerator-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, #4caf50, #8bc34a);
+  transition: height 0.1s ease-out;
+  border-radius: 0 0 50% 50%;
+}
+
+.pedal-icon-overlay {
+  position: relative;
+  z-index: 1;
+}
+
+/* Blinker Indicators */
+.card-blinker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+
+.card-blinker.active {
+  opacity: 1;
+  animation: blink 0.5s infinite;
+}
+
+.blinker-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.blinker-icon-right {
+  transform: rotate(180deg);
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Speed Display - Center with unit below */
+.card-speed {
+  display: flex;
+  width: 60px;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+  flex-shrink: 0;
+}
+
+.card-speed:hover {
+  transform: scale(1.05);
+}
+
+.card-speed-value {
+  font-size: 56px;
+  font-weight: 300;
+  line-height: 1;
+  color: #333;
+}
+
+.card-speed-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* Loading and Error States */
+.minimal-loading,
+.minimal-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 40px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  font-size: 18px;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+}
+
+.minimal-error {
+  color: #e53935;
+  border: 2px solid #e53935;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .minimal-card {
+    gap: 16px;
+    padding: 12px 20px;
+    top: 15px;
+  }
+
+  .card-column {
+    gap: 6px;
+  }
+
+  .card-speed-value {
+    font-size: 44px;
+  }
+
+  .card-speed-unit {
+    font-size: 12px;
+  }
+
+  .minimal-label {
+    font-size: 14px;
+  }
+
+  .card-circle {
+    width: 34px;
+    height: 34px;
+  }
+
+  .card-gear {
+    font-size: 18px;
+  }
+
+  .wheel-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pedal-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .blinker-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Small screens */
+@media (max-width: 480px) {
+  .minimal-card {
+    gap: 12px;
+    padding: 10px 16px;
+    top: 10px;
+  }
+
+  .card-column {
+    gap: 5px;
+  }
+
+  .card-speed-value {
+    font-size: 36px;
+  }
+
+  .card-speed-unit {
+    font-size: 11px;
+  }
+
+  .minimal-label {
+    font-size: 13px;
+  }
+
+  .card-circle {
+    width: 30px;
+    height: 30px;
+  }
+
+  .card-gear {
+    font-size: 16px;
+  }
+
+  .wheel-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .pedal-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .blinker-icon {
+    width: 20px;
+    height: 20px;
+  }
+}

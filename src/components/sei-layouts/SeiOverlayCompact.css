@@ -54,7 +54,6 @@
 .sei-compact-speed-unit {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-left: 2px;
 }
@@ -70,7 +69,6 @@
 .sei-compact-gear-label {
   font-size: 9px;
   color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 2px;
 }
@@ -108,9 +106,10 @@
 
 /* Blinker Indicators */
 .sei-compact-blinker {
-  font-size: 20px;
-  color: #ffa500;
-  text-shadow: 0 0 10px rgba(255, 165, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.8));
   animation: compact-blink 0.5s infinite;
 }
 
@@ -120,6 +119,15 @@
 
 .sei-compact-blinker-right {
   margin-left: 8px;
+}
+
+.sei-compact-blinker-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sei-compact-blinker-icon-right {
+  transform: rotate(180deg);
 }
 
 @keyframes compact-blink {
@@ -173,7 +181,8 @@
     padding: 3px 10px;
   }
 
-  .sei-compact-blinker {
-    font-size: 16px;
+  .sei-compact-blinker-icon {
+    width: 16px;
+    height: 16px;
   }
 }

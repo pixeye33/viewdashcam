@@ -18,7 +18,7 @@ const AUTOPILOT_LABELS = {
   3: 'TACC'
 };
 
-export function SeiOverlayDefault({ seiData, isLoading, error, currentAngle, speedUnit = 'mph', onSpeedUnitToggle, onDebugClick, isHighPrecision = false }) {
+export function SeiOverlayDefault({ seiData, isLoading, error, currentAngle, speedUnit = 'mph', onSpeedUnitToggle, isHighPrecision = false }) {
   const [showPrecisionModal, setShowPrecisionModal] = useState(false);
   
   // Convert m/s to mph
@@ -134,10 +134,10 @@ export function SeiOverlayDefault({ seiData, isLoading, error, currentAngle, spe
           <div className="sei-label">Blinkers</div>
           <div className="sei-blinker-row">
             <div className={`sei-blinker-indicator sei-blinker-left ${seiData.blinker_on_left ? 'sei-blinker-active' : ''}`}>
-              ◀
+              <img src="/blinker.svg" alt="Left Blinker" className="sei-blinker-icon" />
             </div>
             <div className={`sei-blinker-indicator sei-blinker-right ${seiData.blinker_on_right ? 'sei-blinker-active' : ''}`}>
-              ▶
+              <img src="/blinker.svg" alt="Right Blinker" className="sei-blinker-icon sei-blinker-icon-right" />
             </div>
           </div>
         </div>

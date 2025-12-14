@@ -22,8 +22,7 @@ export function SeiOverlayRacing({
   isLoading, 
   error, 
   speedUnit = 'mph', 
-  onSpeedUnitToggle, 
-  onDebugClick 
+  onSpeedUnitToggle 
 }) {
   // Convert m/s to mph
   const speedMph = useMemo(() => {
@@ -84,7 +83,7 @@ export function SeiOverlayRacing({
   }
 
   const displaySpeed = speedUnit === 'mph' ? speedMph : speedKmh;
-  const speedLabel = speedUnit.toUpperCase();
+  const speedLabel = speedUnit;
 
   return (
     <div className="sei-overlay-racing">
@@ -147,10 +146,14 @@ export function SeiOverlayRacing({
 
         {/* Blinkers */}
         {seiData.blinker_on_left && (
-          <div className="sei-racing-indicator sei-racing-blinker-left">◀</div>
+          <div className="sei-racing-indicator sei-racing-blinker-left">
+            <img src="/blinker.svg" alt="Left Blinker" className="sei-racing-blinker-icon" />
+          </div>
         )}
         {seiData.blinker_on_right && (
-          <div className="sei-racing-indicator sei-racing-blinker-right">▶</div>
+          <div className="sei-racing-indicator sei-racing-blinker-right">
+            <img src="/blinker.svg" alt="Right Blinker" className="sei-racing-blinker-icon sei-racing-blinker-icon-right" />
+          </div>
         )}
       </div>
 

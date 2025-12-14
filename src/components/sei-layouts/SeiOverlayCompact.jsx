@@ -9,7 +9,7 @@ const GEAR_LABELS = {
   3: 'N'
 };
 
-export function SeiOverlayCompact({ seiData, isLoading, error, speedUnit = 'mph', onSpeedUnitToggle, onDebugClick }) {
+export function SeiOverlayCompact({ seiData, isLoading, error, speedUnit = 'mph', onSpeedUnitToggle }) {
   // Convert m/s to mph
   const speedMph = useMemo(() => {
     if (!seiData?.vehicle_speed_mps) return 0;
@@ -43,7 +43,7 @@ export function SeiOverlayCompact({ seiData, isLoading, error, speedUnit = 'mph'
   }
 
   const displaySpeed = speedUnit === 'mph' ? speedMph : speedKmh;
-  const speedLabel = speedUnit === 'mph' ? 'MPH' : 'KMH';
+  const speedLabel = speedUnit === 'mph' ? 'MPH' : 'km/h';
 
   return (
     <div className="sei-overlay-compact">
@@ -75,12 +75,12 @@ export function SeiOverlayCompact({ seiData, isLoading, error, speedUnit = 'mph'
         {/* Blinker Indicators */}
         {seiData.blinker_on_left && (
           <div className="sei-compact-blinker sei-compact-blinker-left">
-            ◀
+            <img src="/blinker.svg" alt="Left Blinker" className="sei-compact-blinker-icon" />
           </div>
         )}
         {seiData.blinker_on_right && (
           <div className="sei-compact-blinker sei-compact-blinker-right">
-            ▶
+            <img src="/blinker.svg" alt="Right Blinker" className="sei-compact-blinker-icon sei-compact-blinker-icon-right" />
           </div>
         )}
       </div>

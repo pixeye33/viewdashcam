@@ -709,12 +709,14 @@
 .thumbnail-container-wrapper {
   width: 100%;
   display: flex;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Grid layout specific - center and limit width */
 .video-container[data-layout="grid"] .thumbnail-container-wrapper {
   max-width: 80%;
-  margin: 0 auto;
+  margin: 150px auto 0;
+  border-top: none;
 }
 
 .thumbnail-container {
@@ -724,7 +726,6 @@
   background: rgba(0, 0, 0, 0.9);
   overflow-x: auto;
   flex-shrink: 0;
-  border-top: 2px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
 }
 
@@ -843,27 +844,6 @@
 
 
 
-/* SEI Debug Button */
-.sei-debug-button {
-  background: rgba(138, 43, 226, 0.9);
-  color: white;
-  border: 2px solid rgba(138, 43, 226, 0.3);
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-}
-
-.sei-debug-button:hover {
-  background: rgba(138, 43, 226, 1);
-  border-color: rgba(138, 43, 226, 0.6);
-  box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
-}
-
 /* SEI Modal Specific Styles */
 .sei-modal-content {
   max-width: 1400px;
@@ -939,8 +919,7 @@
 
   .clear-button,
   .help-button,
-  .event-info-button,
-  .sei-debug-button {
+  .event-info-button {
     padding: 10px 20px;
     font-size: 0.9rem;
   }

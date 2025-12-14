@@ -28,7 +28,7 @@ function App() {
   const [duration, setDuration] = useState(0)
   const [previewTime, setPreviewTime] = useState(null)
   const [pendingAngleSwitch, setPendingAngleSwitch] = useState(null)
-  const [speedUnit, setSpeedUnit] = useState('kmh') // 'mph' or 'kmh'
+  const [speedUnit, setSpeedUnit] = useState('km/h') // 'mph' or 'kmh'
   const [isFrameByFrameMode, setIsFrameByFrameMode] = useState(false) // Track if user is in frame-by-frame mode
   const [actualFps, setActualFps] = useState({}) // Store actual FPS for each angle
   const [currentLayoutId, setCurrentLayoutId] = useState('default') // Current video layout
@@ -750,7 +750,7 @@ function App() {
         changePlaybackSpeed(2)
       }
       
-      // SEI Debug modal toggle
+      // SEI Debug modal toggle (keyboard only)
       if (e.code === 'KeyD') {
         e.preventDefault()
         setShowSeiModal(prev => !prev)
@@ -1064,8 +1064,7 @@ function App() {
               error={seiError}
               currentAngle={selectedAngle}
               speedUnit={speedUnit}
-              onSpeedUnitToggle={() => setSpeedUnit(prev => prev === 'mph' ? 'kmh' : 'mph')}
-              onDebugClick={() => setShowSeiModal(true)}
+              onSpeedUnitToggle={() => setSpeedUnit(prev => prev === 'mph' ? 'km/h' : 'mph')}
               isHighPrecision={isFrameByFrameMode && webCodecsPlayerRef.current?.getCurrentSei() !== null}
               layoutId={currentSeiLayoutId}
             />

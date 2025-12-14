@@ -8,6 +8,7 @@
 import { SeiOverlayCompact } from '../components/sei-layouts/SeiOverlayCompact'
 import { SeiOverlayDefault } from '../components/sei-layouts/SeiOverlayDefault'
 import { SeiOverlayRacing } from '../components/sei-layouts/SeiOverlayRacing'
+import { SeiOverlayMinimal } from '../components/sei-layouts/SeiOverlayMinimal'
 import { SeiOverlayHidden } from '../components/sei-layouts/SeiOverlayHidden'
 
 /**
@@ -24,6 +25,13 @@ const seiLayouts = {
   default: {
     id: 'default',
     name: 'Default',
+    description: 'Minimalist centered layout with essential driving metrics',
+    component: SeiOverlayMinimal,
+  },
+
+  advanced: {
+    id: 'advanced',
+    name: 'Advanced',
     description: 'Full telemetry data display on the right side',
     component: SeiOverlayDefault,
   },

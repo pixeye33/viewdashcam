@@ -58,7 +58,6 @@
 .sei-racing-speed-unit {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
   letter-spacing: 2px;
   margin-top: 4px;
 }
@@ -128,10 +127,20 @@
 .sei-racing-blinker-left,
 .sei-racing-blinker-right {
   background: rgba(255, 165, 0, 0.3);
-  color: #ffa500;
   border-color: #ffa500;
   animation: racing-blink 0.5s infinite;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sei-racing-blinker-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.sei-racing-blinker-icon-right {
+  transform: rotate(180deg);
 }
 
 @keyframes racing-blink {
@@ -190,7 +199,6 @@
 .sei-racing-metric-label {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 8px;
   text-align: center;
