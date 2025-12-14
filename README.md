@@ -58,7 +58,7 @@ All video processing happens in your browser. No uploads, no servers, no data co
 - **Real-Time Overlay** - All vehicle data displayed in sync with video
 - **Multi-Angle Support** - View telemetry from any camera angle
 - **Speed Unit Toggle** - Switch between mph and km/h
-- **Debug Mode** - View raw telemetry data across all angles (press 'D')
+- **SEI Debug Mode** - View raw telemetry data across all angles (press 'D' key)
 
 ### User Experience
 - **Clean Modern UI** - Minimalist design that stays out of your way
@@ -163,6 +163,7 @@ Name your videos using this pattern: `YYYY-MM-DD_HH-MM-SS-angle.mp4`
 
 ### Interface
 - **Click Date/Time Display** - Toggle controls and events panel visibility
+- **D** - Toggle SEI Debug Modal (view raw telemetry data)
 
 ## Tesla Dashcam Support
 

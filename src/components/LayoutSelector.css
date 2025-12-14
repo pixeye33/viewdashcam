@@ -1,0 +1,120 @@
+.layout-selector {
+  position: relative;
+  z-index: 150;
+}
+
+.layout-selector-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.layout-selector-button:hover {
+  background: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.layout-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.layout-name {
+  white-space: nowrap;
+}
+
+.layout-selector-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 148;
+}
+
+.layout-selector-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 12px;
+  min-width: 280px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  z-index: 149;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.layout-selector-header {
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.layout-option {
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.layout-option:last-child {
+  border-bottom: none;
+}
+
+.layout-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.layout-option.active {
+  background: rgba(102, 126, 234, 0.3);
+  border-left: 4px solid #667eea;
+}
+
+.layout-option-name {
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.layout-option-description {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .layout-selector-dropdown {
+    min-width: 240px;
+  }
+
+  .layout-option {
+    padding: 12px 14px;
+  }
+
+  .layout-option-name {
+    font-size: 0.9rem;
+  }
+
+  .layout-option-description {
+    font-size: 0.75rem;
+  }
+}

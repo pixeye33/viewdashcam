@@ -134,7 +134,7 @@ export class WebCodecsMP4 {
         // - 32 bytes: compressor name
         // - 2 bytes: depth
         // - 2 bytes: pre-defined
-        // Total: 78 bytes before extension boxes (avcC, etc)
+// Total: 78 bytes before extension boxes (avcC, etc)
         
         const width = this.view.getUint16(sampleEntry.start + 24)
         const height = this.view.getUint16(sampleEntry.start + 26)
@@ -440,7 +440,6 @@ export class WebCodecsPlayer {
             }
 
             if (keyIdx < 0) {
-                console.error('No keyframe found before frame', index)
                 this.decoding = false
                 return
             }
@@ -507,9 +506,6 @@ export class WebCodecsPlayer {
                             createImageBitmap(frame).then(bitmap => {
                                 this.addToCache(currentIdx, bitmap)
                             }).catch(() => {})
-                        } else if (alreadyCached) {
-                            // Frame already cached - skip creating ImageBitmap
-                            // This saves CPU and memory
                         }
                         
                         // Render the target frame when we reach it

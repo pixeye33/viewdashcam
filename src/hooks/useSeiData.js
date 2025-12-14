@@ -46,7 +46,6 @@ export function useSeiData(videoFiles, currentTime, duration = 0, selectedAngle 
         if (!SeiMetadataRef.current) {
           const response = await fetch('/dashcam.proto');
           const protoText = await response.text();
-          // IMPORTANT: keepCase preserves snake_case field names from Tesla's .proto
           const root = protobuf.parse(protoText, { keepCase: true }).root;
           SeiMetadataRef.current = root.lookupType('SeiMetadata');
         }
@@ -127,7 +126,6 @@ export function useSeiData(videoFiles, currentTime, duration = 0, selectedAngle 
       // Calculate current frame index based on actual FPS
       const currentFrameIndex = Math.floor(currentTime * actualFps);
       
-      // Find the SEI message for the current frame or nearest previous frame
       let matchedSei = null;
       let matchedFrameIndex = null;
       

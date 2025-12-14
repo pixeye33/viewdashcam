@@ -2,8 +2,11 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 import { SeiOverlay } from './components/SeiOverlay'
 import { EventInfoModal } from './components/EventInfoModal'
+import { LayoutSelector } from './components/LayoutSelector'
+import { SeiLayoutSelector } from './components/SeiLayoutSelector'
 import { useSeiData } from './hooks/useSeiData'
 import { DISABLE_WEBCODECS } from './config'
+import { getLayout } from './layouts/layouts'
 import protobuf from 'protobufjs'
 
 function App() {
@@ -28,6 +31,9 @@ function App() {
   const [speedUnit, setSpeedUnit] = useState('kmh') // 'mph' or 'kmh'
   const [isFrameByFrameMode, setIsFrameByFrameMode] = useState(false) // Track if user is in frame-by-frame mode
   const [actualFps, setActualFps] = useState({}) // Store actual FPS for each angle
+  const [currentLayoutId, setCurrentLayoutId] = useState('default') // Current video layout
+  const [currentSeiLayoutId, setCurrentSeiLayoutId] = useState('default') // Current SEI overlay layout
+  const [openLayoutSelector, setOpenLayoutSelector] = useState(null) // Track which layout selector is open: 'video' | 'sei' | null
   
   const mainVideoRef = useRef(null)
   const mainCanvasRef = useRef(null)
@@ -295,7 +301,6 @@ function App() {
     // Don't allow clicking on the currently selected angle
     if (angle === selectedAngle) return
     
-    // Capture current state before switching
     if (!mainVideoRef.current) return
     
     const currentTime = mainVideoRef.current.currentTime
@@ -381,8 +386,6 @@ function App() {
     }
   }
 
-  // Note: WebCodecs playback loop removed - only using WebCodecs for frame-by-frame navigation
-
   // Custom playback controls
   const togglePlayPause = () => {
     if (!mainVideoRef.current) return
@@ -392,8 +395,6 @@ function App() {
       isFrameByFrameModeRef.current = false
       setIsFrameByFrameMode(false)
       
-      // Clear all WebCodecs caches when exiting frame-by-frame mode
-      // This ensures smooth transition back to normal video playback
       Object.values(thumbnailWebCodecsPlayersRef.current).forEach(player => {
         if (player && player.clearCache) {
           player.clearCache()
@@ -449,7 +450,6 @@ function App() {
         setIsFrameByFrameMode(true)
       }
       
-      // Now move to the next/previous frame
       const newIndex = forward 
         ? Math.min(player.currentFrameIndex + 1, player.frames.length - 1)
         : Math.max(player.currentFrameIndex - 1, 0)
@@ -610,7 +610,6 @@ function App() {
     
     const eventVideos = sortVideosByAngle(allEvents[eventKey])
     
-    // Pause current video before switching to prevent race condition
     if (mainVideoRef.current) {
       mainVideoRef.current.pause()
     }
@@ -640,7 +639,6 @@ function App() {
   }
 
   const handleClearVideos = () => {
-    // Clear all WebCodecs caches before clearing videos
     Object.values(thumbnailWebCodecsPlayersRef.current).forEach(player => {
       if (player && player.clearCache) {
         player.clearCache()
@@ -797,6 +795,50 @@ function App() {
   }
 
   const selectedVideo = videos.find(v => v.angle === selectedAngle)
+  
+  // Get current layout configuration
+  const currentLayout = useMemo(() => {
+    const layout = getLayout(currentLayoutId)
+    // Apply dynamic grid columns based on video count for grid layout
+    if (layout.id === 'grid' && layout.getContainerStyle && videos.length > 0) {
+      const dynamicContainerStyle = layout.getContainerStyle(videos.length)
+      return {
+        ...layout,
+        containerStyle: dynamicContainerStyle,
+        thumbnails: {
+          ...layout.thumbnails,
+          style: {
+            ...layout.thumbnails.style,
+            gridTemplateColumns: dynamicContainerStyle.gridTemplateColumns,
+          }
+        }
+      }
+    }
+    return layout
+  }, [currentLayoutId, videos.length])
+  
+  // Handle layout change
+  const handleLayoutChange = useCallback((layoutId) => {
+    setCurrentLayoutId(layoutId)
+  }, [])
+  
+  // Handle SEI layout change
+  const handleSeiLayoutChange = useCallback((layoutId) => {
+    setCurrentSeiLayoutId(layoutId)
+  }, [])
+  
+  // Handle layout selector toggle
+  const handleVideoLayoutToggle = useCallback(() => {
+    setOpenLayoutSelector(prev => prev === 'video' ? null : 'video')
+  }, [])
+  
+  const handleSeiLayoutToggle = useCallback(() => {
+    setOpenLayoutSelector(prev => prev === 'sei' ? null : 'sei')
+  }, [])
+  
+  const handleCloseLayoutSelector = useCallback(() => {
+    setOpenLayoutSelector(null)
+  }, [])
 
   // Initialize WebCodecs players for all videos ONCE (for frame-by-frame mode)
   useEffect(() => {
@@ -983,60 +1025,100 @@ function App() {
           </div>
         </div>
       ) : (
-        <div className="video-container">
+        <div 
+          className="video-container"
+          style={currentLayout.containerStyle}
+          data-layout={currentLayoutId}
+        >
+          {/* SEI Overlay - First child for proper layering */}
+          {selectedVideo && (
+            <SeiOverlay 
+              seiData={currentSeiData} 
+              isLoading={seiLoading} 
+              error={seiError}
+              currentAngle={selectedAngle}
+              speedUnit={speedUnit}
+              onSpeedUnitToggle={() => setSpeedUnit(prev => prev === 'mph' ? 'kmh' : 'mph')}
+              onDebugClick={() => setShowSeiModal(true)}
+              isHighPrecision={isFrameByFrameMode && webCodecsPlayerRef.current?.getCurrentSei() !== null}
+              layoutId={currentSeiLayoutId}
+            />
+          )}
+
           {/* Controls Overlay */}
           {showControls && (
             <div className="controls-overlay">
-              {/* Event DateTime Display */}
-              {eventDateTime && (
-                <div 
-                  className="datetime-display"
-                  onClick={() => {
-                    setShowEventsPanel(!showEventsPanel)
-                    setShowControls(!showControls)
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {formatDateTime(eventDateTime, Math.floor(currentTime))}
-                </div>
-              )}
-
-              {/* Events Panel - Always show when events exist */}
-              {Object.keys(allEvents).length > 0 && showEventsPanel && (
-                <div className="events-panel">
-                  <div className="events-panel-header">Events</div>
-                  <div className="events-panel-list">
-                    {Object.keys(allEvents).sort().map((eventKey) => (
-                      <div
-                        key={eventKey}
-                        className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
-                        onClick={() => handleEventSwitch(eventKey)}
-                      >
-                        <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
-                        <div className="event-item-info">{allEvents[eventKey].length} videos</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Clear Button, Event Info Button, and Help Button */}
-              <div className="top-buttons">
-                <button 
-                  className="clear-button"
-                  onClick={handleClearVideos}
-                >
-                  Choose Other Videos
-                </button>
-                {eventJsonData && (
-                  <button 
-                    className="event-info-button"
-                    onClick={() => setShowEventInfoModal(true)}
-                    title="View event information from event.json"
+              {/* Left-side info panel group */}
+              <div className="left-info-panel-group">
+                {/* Event DateTime Display */}
+                {eventDateTime && (
+                  <div 
+                    className="datetime-display"
+                    onClick={() => {
+                      setShowEventsPanel(!showEventsPanel)
+                      setShowControls(!showControls)
+                    }}
+                    style={{ cursor: 'pointer' }}
                   >
-                    Event Info
-                  </button>
+                    {formatDateTime(eventDateTime, Math.floor(currentTime))}
+                  </div>
                 )}
+
+                {/* Action Buttons - Between clock and event list */}
+                <div className="action-buttons-middle">
+                  <button 
+                    className="clear-button-middle"
+                    onClick={handleClearVideos}
+                  >
+                    Choose Other Videos
+                  </button>
+                  {eventJsonData && (
+                    <button 
+                      className="event-info-button-middle"
+                      onClick={() => setShowEventInfoModal(true)}
+                      title="View event information from event.json"
+                    >
+                      Event Info
+                    </button>
+                  )}
+                </div>
+
+                {/* Events Panel - Always show when events exist */}
+                {Object.keys(allEvents).length > 0 && showEventsPanel && (
+                  <div className="events-panel">
+                    <div className="events-panel-header">Events</div>
+                    <div className="events-panel-list">
+                      {Object.keys(allEvents).sort().map((eventKey) => (
+                        <div
+                          key={eventKey}
+                          className={`event-item ${eventKey === selectedEvent ? 'active' : ''}`}
+                          onClick={() => handleEventSwitch(eventKey)}
+                        >
+                          <div className="event-item-datetime">{formatDateTime(eventKey, 0)}</div>
+                          <div className="event-item-info">{allEvents[eventKey].length} videos</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Layout Selectors and Help Button */}
+              <div className="top-buttons">
+                <LayoutSelector 
+                  currentLayout={currentLayoutId}
+                  onLayoutChange={handleLayoutChange}
+                  isOpen={openLayoutSelector === 'video'}
+                  onToggle={handleVideoLayoutToggle}
+                  onClose={handleCloseLayoutSelector}
+                />
+                <SeiLayoutSelector 
+                  currentLayout={currentSeiLayoutId}
+                  onLayoutChange={handleSeiLayoutChange}
+                  isOpen={openLayoutSelector === 'sei'}
+                  onToggle={handleSeiLayoutToggle}
+                  onClose={handleCloseLayoutSelector}
+                />
                 <button 
                   className="help-button"
                   onClick={() => setShowHelpModal(true)}
@@ -1062,7 +1144,10 @@ function App() {
           )}
 
           {/* Main Video Player */}
-          <div className="main-player">
+          <div 
+            className="main-player"
+            style={currentLayout.mainPlayer.style}
+          >
             {selectedVideo && (
               <>
                 {/* Always render video element for smooth playback */}
@@ -1075,6 +1160,7 @@ function App() {
                   onTimeUpdate={handleMainVideoTimeUpdate}
                   onSeeking={handleMainVideoSeeking}
                   onLoadedMetadata={handleLoadedMetadata}
+                  disablePictureInPicture
                   style={{ display: isFrameByFrameMode ? 'none' : 'block' }}
                 >
                   Your browser does not support the video tag.
@@ -1092,115 +1178,11 @@ function App() {
                   ref={previewVideoRef}
                   src={selectedVideo.url}
                   muted
+                  disablePictureInPicture
                   onSeeked={handlePreviewSeeked}
                   style={{ display: 'none' }}
                 />
 
-                {/* SEI Overlay - show for currently selected angle */}
-                <SeiOverlay 
-                  seiData={currentSeiData} 
-                  isLoading={seiLoading} 
-                  error={seiError}
-                  currentAngle={selectedAngle}
-                  speedUnit={speedUnit}
-                  onSpeedUnitToggle={() => setSpeedUnit(prev => prev === 'mph' ? 'kmh' : 'mph')}
-                  onDebugClick={() => setShowSeiModal(true)}
-                  isHighPrecision={isFrameByFrameMode && webCodecsPlayerRef.current?.getCurrentSei() !== null}
-                />
-
-                 {/* Custom Controls - Part of overlay */}
-                {showControls && <div className="custom-controls">
-                  {/* Control Buttons */}
-                  <div className="controls-row">
-                    <div className="controls-left">
-                      {/* Play/Pause */}
-                      <button 
-                        className="control-btn"
-                        onClick={togglePlayPause}
-                        title="Play/Pause (Space)"
-                      >
-                        {isPlaying ? (
-                          <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                        )}
-                      </button>
-
-                      {/* Previous Frame */}
-                      <button 
-                        className="control-btn"
-                        onClick={() => seekToFrame(false)}
-                        title="Previous Frame (←)"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(180deg)' }}>
-                          <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
-                        </svg>
-                      </button>
-
-                      {/* Next Frame */}
-                      <button 
-                        className="control-btn"
-                        onClick={() => seekToFrame(true)}
-                        title="Next Frame (→)"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
-                        </svg>
-                      </button>
-
-                      {/* Jump Back 10s */}
-                      <button 
-                        className="control-btn"
-                        onClick={() => jumpTime(-10)}
-                        title="Jump Back 10s (Shift+←)"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-                          <text x="9" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
-                        </svg>
-                      </button>
-
-                      {/* Jump Forward 10s */}
-                      <button 
-                        className="control-btn"
-                        onClick={() => jumpTime(10)}
-                        title="Jump Forward 10s (Shift+→)"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
-                          <text x="9.5" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="controls-right">
-                      {/* Playback Speed */}
-                      <div className="speed-controls">
-                        {[
-                          { rate: 0.25, key: 'Q' },
-                          { rate: 0.5, key: 'W' },
-                          { rate: 1, key: 'E' },
-                          { rate: 1.25, key: 'R' },
-                          { rate: 1.5, key: 'T' },
-                          { rate: 2, key: 'Y' }
-                        ].map(({ rate, key }) => (
-                          <button
-                            key={rate}
-                            className={`speed-btn ${playbackRate === rate ? 'active' : ''}`}
-                            onClick={() => changePlaybackSpeed(rate)}
-                            title={`Speed ${rate}x (${key})`}
-                          >
-                            {rate}x
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>}
               </>
             )}
           </div>
@@ -1209,6 +1191,7 @@ function App() {
           {selectedVideo && showControls && (
             <div 
               className="progress-bar-standalone"
+              style={currentLayout.progressBar.style}
               ref={progressBarRef}
               onClick={handleProgressClick}
               onMouseMove={handleProgressHover}
@@ -1267,42 +1250,140 @@ function App() {
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
+
+              {/* Custom Controls - Part of progress bar */}
+              <div className="controls-row">
+                <div className="controls-left">
+                  {/* Play/Pause */}
+                  <button 
+                    className="control-btn"
+                    onClick={togglePlayPause}
+                    title="Play/Pause (Space)"
+                  >
+                    {isPlaying ? (
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Previous Frame */}
+                  <button 
+                    className="control-btn"
+                    onClick={() => seekToFrame(false)}
+                    title="Previous Frame (←)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(180deg)' }}>
+                      <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
+                    </svg>
+                  </button>
+
+                  {/* Next Frame */}
+                  <button 
+                    className="control-btn"
+                    onClick={() => seekToFrame(true)}
+                    title="Next Frame (→)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 18H4V6h2v12zm13-6l-8.5 6V6l8.5 6z"/>
+                    </svg>
+                  </button>
+
+                  {/* Jump Back 10s */}
+                  <button 
+                    className="control-btn"
+                    onClick={() => jumpTime(-10)}
+                    title="Jump Back 10s (Shift+←)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                      <text x="9" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
+                    </svg>
+                  </button>
+
+                  {/* Jump Forward 10s */}
+                  <button 
+                    className="control-btn"
+                    onClick={() => jumpTime(10)}
+                    title="Jump Forward 10s (Shift+→)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                      <text x="9.5" y="15" fontSize="8" fill="currentColor" fontWeight="bold">10</text>
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="controls-right">
+                  {/* Playback Speed */}
+                  <div className="speed-controls">
+                    {[
+                      { rate: 0.25, key: 'Q' },
+                      { rate: 0.5, key: 'W' },
+                      { rate: 1, key: 'E' },
+                      { rate: 1.25, key: 'R' },
+                      { rate: 1.5, key: 'T' },
+                      { rate: 2, key: 'Y' }
+                    ].map(({ rate, key }) => (
+                      <button
+                        key={rate}
+                        className={`speed-btn ${playbackRate === rate ? 'active' : ''}`}
+                        onClick={() => changePlaybackSpeed(rate)}
+                        title={`Speed ${rate}x (${key})`}
+                      >
+                        {rate}x
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Thumbnail Videos */}
-          <div className="thumbnail-container">
-            {videos.map((video) => (
-              <div 
-                key={video.angle}
-                className={`thumbnail-wrapper ${video.angle === selectedAngle ? 'active' : ''}`}
-                onClick={() => handleThumbnailClick(video.angle)}
-              >
-                {/* Video element for normal playback */}
-                <video
-                  ref={(el) => {
-                    thumbnailRefsRef.current[video.angle] = el
-                  }}
-                  src={video.url}
-                  className="video-player thumbnail"
-                  muted
-                  style={{ display: isFrameByFrameMode ? 'none' : 'block' }}
+          <div className="thumbnail-container-wrapper">
+            <div
+              className="thumbnail-container"
+              style={currentLayout.thumbnails.style}
+            >
+              {videos.map((video) => (
+                <div
+                  key={video.angle}
+                  className={`thumbnail-wrapper ${video.angle === selectedAngle ? 'active' : ''}`}
+                  style={currentLayout.thumbnails.thumbnailStyle}
+                  onClick={() => handleThumbnailClick(video.angle)}
                 >
-                  Your browser does not support the video tag.
-                </video>
-                
-                {/* Canvas for frame-by-frame mode */}
-                <canvas
-                  ref={(el) => {
-                    thumbnailCanvasRefsRef.current[video.angle] = el
-                  }}
-                  className="video-player thumbnail"
-                  style={{ display: isFrameByFrameMode ? 'block' : 'none' }}
-                />
-                
-                <div className="thumbnail-label">{formatAngleName(video.angle)}</div>
-              </div>
-            ))}
+                  {/* Video element for normal playback */}
+                  <video
+                    ref={(el) => {
+                      thumbnailRefsRef.current[video.angle] = el
+                    }}
+                    src={video.url}
+                    className="video-player thumbnail"
+                    muted
+                    disablePictureInPicture
+                    style={{ display: isFrameByFrameMode ? 'none' : 'block' }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                  
+                  {/* Canvas for frame-by-frame mode */}
+                  <canvas
+                    ref={(el) => {
+                      thumbnailCanvasRefsRef.current[video.angle] = el
+                    }}
+                    className="video-player thumbnail"
+                    style={{ display: isFrameByFrameMode ? 'block' : 'none' }}
+                  />
+                  
+                  <div className="thumbnail-label">{formatAngleName(video.angle)}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* SEI Debug Modal */}

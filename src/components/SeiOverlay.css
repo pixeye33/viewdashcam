@@ -1,16 +1,66 @@
+/* SEI Overlay Wrapper - Constrains layout area to prevent covering media controls */
+.sei-overlay-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 270px; /* Reserve space for media controls - Default layout */
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+}
+
+/* Grid layout specific adjustments - progress bar is fixed at bottom */
+.video-container[data-layout="grid"] .sei-overlay-wrapper {
+  bottom: 120px; /* More space for fixed progress bar with controls in grid layout */
+}
+
+/* Responsive adjustment for wrapper */
+@media (max-width: 768px) {
+  .sei-overlay-wrapper {
+    bottom: 300px; /* Smaller control area on mobile */
+  }
+  
+  .video-container[data-layout="grid"] .sei-overlay-wrapper {
+    bottom: 140px; /* Even more space on mobile for grid layout */
+  }
+}
+
 .sei-overlay {
   position: absolute;
-  top: 150px;
+  top: 70px;
   right: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   pointer-events: none;
-  z-index: 100;
-  font-family: 'Courier New', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   width: 200px;
   min-width: 200px;
   max-width: 200px;
+  max-height: calc(100% - 100px); /* Prevent overflow from top position */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 10px;
+}
+
+/* Scrollbar styling for SEI overlay */
+.sei-overlay::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sei-overlay::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.sei-overlay::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.sei-overlay::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* High Precision Indicator */
@@ -21,7 +71,7 @@
   color: #ffd700;
   border: 1px solid rgba(255, 215, 0, 0.6);
   border-radius: 6px;
-  font-family: 'Courier New', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   font-size: 11px;
   cursor: pointer;
   backdrop-filter: blur(4px);
@@ -162,28 +212,6 @@
 
 .precision-tip strong {
   color: #667eea;
-}
-
-.sei-debug-button {
-  pointer-events: auto;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.75);
-  color: #00ff00;
-  border: 1px solid rgba(0, 255, 0, 0.4);
-  border-radius: 6px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sei-debug-button:hover {
-  background: rgba(0, 255, 0, 0.1);
-  border-color: rgba(0, 255, 0, 0.6);
-  box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
 }
 
 .sei-message {
