@@ -36,9 +36,10 @@
 /* Autopilot State Label - Below card */
 .minimal-label {
   text-align: center;
-  font-size: 16px;
-  font-weight: 400;
-  color: #4a90e2;
+  padding: 3px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #006deb;
   letter-spacing: 0.5px;
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.60);
@@ -53,7 +54,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #e0e0e0;
+  background-color: #a4a4a4;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,9 +63,9 @@
 
 /* Gear Indicator */
 .card-gear {
-  font-size: 20px;
-  font-weight: 600;
-  color: #4a4a4a;
+  font-size: 25px;
+  font-weight: 700;
+  color: #006deb;
 }
 
 .wheel-icon {
@@ -79,6 +80,7 @@
   width: 24px;
   height: 24px;
   object-fit: contain;
+  filter: brightness(0.6);
 }
 
 /* Brake Pedal - Active State */
@@ -124,7 +126,7 @@
 
 .card-blinker.active {
   opacity: 1;
-  animation: blink 0.5s infinite;
+  animation: blink 1s steps(1) infinite;
 }
 
 .blinker-icon {
@@ -137,12 +139,8 @@
 }
 
 @keyframes blink {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.3;
-  }
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* Speed Display - Center with unit below */
@@ -157,20 +155,16 @@
   flex-shrink: 0;
 }
 
-.card-speed:hover {
-  transform: scale(1.05);
-}
-
 .card-speed-value {
   font-size: 56px;
-  font-weight: 300;
+  font-weight: 600;
   line-height: 1;
   color: #333;
 }
 
 .card-speed-unit {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   color: #666;
   letter-spacing: 1px;
   margin-top: 2px;

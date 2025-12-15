@@ -128,7 +128,7 @@
 .sei-racing-blinker-right {
   background: rgba(255, 165, 0, 0.3);
   border-color: #ffa500;
-  animation: racing-blink 0.5s infinite;
+  animation: racing-blink 1s steps(1) infinite;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,13 +144,13 @@
 }
 
 @keyframes racing-blink {
-  0%, 100% { 
+  0% { 
     opacity: 1;
     box-shadow: 0 0 15px rgba(255, 165, 0, 0.8);
   }
   50% { 
-    opacity: 0.3;
-    box-shadow: 0 0 5px rgba(255, 165, 0, 0.3);
+    opacity: 0;
+    box-shadow: none;
   }
 }
 

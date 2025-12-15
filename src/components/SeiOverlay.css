@@ -371,7 +371,7 @@
 .sei-blinker-indicator.sei-blinker-active {
   opacity: 1;
   filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.8));
-  animation: blink 0.5s infinite;
+  animation: blink 1s steps(1) infinite;
 }
 
 .sei-blinker-icon {
@@ -384,8 +384,8 @@
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* Autopilot Component */

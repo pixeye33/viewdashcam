@@ -110,7 +110,7 @@
   align-items: center;
   justify-content: center;
   filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.8));
-  animation: compact-blink 0.5s infinite;
+  animation: compact-blink 1s steps(1) infinite;
 }
 
 .sei-compact-blinker-left {
@@ -131,8 +131,8 @@
 }
 
 @keyframes compact-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* Messages */
