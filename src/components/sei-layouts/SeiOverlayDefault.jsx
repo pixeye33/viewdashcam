@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import '../SeiOverlay.css';
-import wheelIcon from '../../../wheel.svg';
 
 // Gear state mapping
 const GEAR_LABELS = {
@@ -101,7 +100,7 @@ export function SeiOverlayDefault({ seiData, isLoading, error, currentAngle, spe
           <div className="sei-value-medium">{(seiData.steering_wheel_angle || 0).toFixed(1)}°</div>
           <div className="sei-steering-indicator">
             <img 
-              src={wheelIcon} 
+              src="/wheel.svg" 
               alt="Steering Wheel"
               className="sei-steering-wheel" 
               style={{ 
