@@ -47,6 +47,42 @@ export function SeiOverlayRacing({
     };
   }, [seiData]);
 
+  // Calculate acceleration circle position (normalized to circle radius)
+  const accelPosition = useMemo(() => {
+    const x = seiData?.linear_acceleration_mps2_x || 0;
+    const y = seiData?.linear_acceleration_mps2_y || 0;
+    const z = seiData?.linear_acceleration_mps2_z || 0;
+    
+    // Convert to G-forces
+    const gx = x / 9.81;
+    const gy = y / 9.81;
+    const gz = z / 9.81;
+    
+    // Calculate magnitude
+    const magnitude = Math.sqrt(gx * gx + gy * gy + gz * gz);
+    
+    // Map to circle (use X for horizontal, Y for vertical)
+    // Scale to fit within circle (max 2G = edge of circle)
+    const maxG = 2;
+    const scale = 50; // Radius of circle in SVG units
+    
+    // Format values and fix -0.00 issue
+    const formatG = (val) => {
+      const fixed = val.toFixed(2);
+      // Convert -0.00 to 0.00
+      return fixed === '-0.00' ? '0.00' : fixed;
+    };
+    
+    return {
+      x: (gx / maxG) * scale,
+      y: -(gy / maxG) * scale, // Negative because SVG Y axis is inverted
+      magnitude: formatG(magnitude),
+      gx: formatG(gx),
+      gy: formatG(gy),
+      gz: formatG(gz)
+    };
+  }, [seiData]);
+
   // Calculate speedometer arc angle (0-280 degrees)
   const speedAngle = useMemo(() => {
     const speed = speedUnit === 'mph' ? speedMph : speedKmh;
@@ -167,7 +203,7 @@ export function SeiOverlayRacing({
               className="sei-racing-steering-indicator"
               style={{ transform: `rotate(${steeringRotation}deg)` }}
             >
-              ⊕
+              <img src="/wheel.svg" alt="Steering Wheel" className="sei-racing-wheel-icon" />
             </div>
             <div className="sei-racing-steering-angle">
               {Math.round(seiData?.steering_wheel_angle || 0)}°
@@ -175,21 +211,75 @@ export function SeiOverlayRacing({
           </div>
         </div>
 
-        {/* G-Force Meter */}
+        {/* G-Force Meter - Circular Display */}
         <div className="sei-racing-metric">
           <div className="sei-racing-metric-label">G-FORCE</div>
-          <div className="sei-racing-gforce">
-            <div className="sei-racing-gforce-item">
-              <span className="sei-racing-gforce-axis">LAT</span>
-              <span className={`sei-racing-gforce-value ${Math.abs(gForce.lateral) > 0.5 ? 'active' : ''}`}>
-                {gForce.lateral}
-              </span>
-            </div>
-            <div className="sei-racing-gforce-item">
-              <span className="sei-racing-gforce-axis">LON</span>
-              <span className={`sei-racing-gforce-value ${Math.abs(gForce.longitudinal) > 0.5 ? 'active' : ''}`}>
-                {gForce.longitudinal}
-              </span>
+          <div className="sei-racing-gforce-circle">
+            <svg viewBox="0 0 120 120" className="sei-racing-gforce-svg">
+              {/* Outer circle */}
+              <circle
+                cx="60"
+                cy="60"
+                r="50"
+                fill="rgba(0, 0, 0, 0.4)"
+                stroke="rgba(0, 255, 0, 0.3)"
+                strokeWidth="2"
+              />
+              
+              {/* Inner circle (1G marker) */}
+              <circle
+                cx="60"
+                cy="60"
+                r="25"
+                fill="none"
+                stroke="rgba(0, 255, 0, 0.15)"
+                strokeWidth="1"
+                strokeDasharray="2,2"
+              />
+              
+              {/* Center crosshair */}
+              <line x1="60" y1="55" x2="60" y2="65" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="1" />
+              <line x1="55" y1="60" x2="65" y2="60" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="1" />
+              
+              {/* Acceleration point */}
+              <circle
+                cx={60 + accelPosition.x}
+                cy={60 + accelPosition.y}
+                r="6"
+                fill="#00ff00"
+                stroke="#ffffff"
+                strokeWidth="2"
+                className="sei-racing-gforce-point"
+                style={{
+                  filter: 'drop-shadow(0 0 6px rgba(0, 255, 0, 0.8))'
+                }}
+              />
+              
+              {/* Line from center to point */}
+              <line
+                x1="60"
+                y1="60"
+                x2={60 + accelPosition.x}
+                y2={60 + accelPosition.y}
+                stroke="rgba(0, 255, 0, 0.5)"
+                strokeWidth="2"
+              />
+            </svg>
+            
+            {/* G-Force values below circle */}
+            <div className="sei-racing-gforce-values">
+              <div className="sei-racing-gforce-value-item">
+                <span className="sei-racing-gforce-axis">X</span>
+                <span className="sei-racing-gforce-num">{accelPosition.gx.startsWith('-') ? '' : '+'}{accelPosition.gx}</span>
+              </div>
+              <div className="sei-racing-gforce-value-item">
+                <span className="sei-racing-gforce-axis">Y</span>
+                <span className="sei-racing-gforce-num">{accelPosition.gy.startsWith('-') ? '' : '+'}{accelPosition.gy}</span>
+              </div>
+              <div className="sei-racing-gforce-value-item">
+                <span className="sei-racing-gforce-axis">Z</span>
+                <span className="sei-racing-gforce-num">{accelPosition.gz.startsWith('-') ? '' : '+'}{accelPosition.gz}</span>
+              </div>
             </div>
           </div>
         </div>

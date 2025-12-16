@@ -10,6 +10,7 @@ import { SeiOverlayDefault } from '../components/sei-layouts/SeiOverlayDefault'
 import { SeiOverlayRacing } from '../components/sei-layouts/SeiOverlayRacing'
 import { SeiOverlayMinimal } from '../components/sei-layouts/SeiOverlayMinimal'
 import { SeiOverlayHidden } from '../components/sei-layouts/SeiOverlayHidden'
+import { SeiOverlayIconLine } from '../components/sei-layouts/SeiOverlayIconLine'
 
 /**
  * SEI Layout Definition Structure:
@@ -48,6 +49,13 @@ const seiLayouts = {
     name: 'Racing',
     description: 'Performance-focused layout with speedometer, G-forces, and steering wheel',
     component: SeiOverlayRacing,
+  },
+
+  singleLine: {
+    id: 'singleLine',
+    name: 'Single Line',
+    description: 'Clean icon line at top: brake, gear, blinkers, speed, steering, accelerator',
+    component: SeiOverlayIconLine,
   },
 
   hidden: {

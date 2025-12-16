@@ -220,6 +220,12 @@
   line-height: 1;
 }
 
+.sei-racing-wheel-icon {
+  width: 48px;
+  height: 48px;
+  filter: brightness(0) saturate(100%) invert(70%) sepia(100%) saturate(2000%) hue-rotate(80deg) brightness(1.2) drop-shadow(0 0 10px rgba(0, 255, 0, 0.8));
+}
+
 .sei-racing-steering-angle {
   font-size: 16px;
   color: #00ff00;
@@ -227,39 +233,54 @@
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
 }
 
-/* G-Force Display */
-.sei-racing-gforce {
+/* G-Force Display - Circular */
+.sei-racing-gforce-circle {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 
-.sei-racing-gforce-item {
+.sei-racing-gforce-svg {
+  width: 120px;
+  height: 120px;
+}
+
+.sei-racing-gforce-point {
+  transition: cx 0.1s ease-out, cy 0.1s ease-out;
+}
+
+.sei-racing-gforce-values {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  justify-content: space-around;
+}
+
+.sei-racing-gforce-value-item {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 6px;
+  gap: 2px;
+  min-width: 35px;
 }
 
 .sei-racing-gforce-axis {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.5px;
+  width: 100%;
+  text-align: center;
 }
 
-.sei-racing-gforce-value {
-  font-size: 18px;
+.sei-racing-gforce-num {
+  font-size: 12px;
   font-weight: bold;
-  color: #00c8ff;
-  text-shadow: 0 0 5px rgba(0, 200, 255, 0.4);
-  transition: all 0.2s ease;
-}
-
-.sei-racing-gforce-value.active {
-  color: #ff9500;
-  text-shadow: 0 0 10px rgba(255, 149, 0, 0.8);
+  color: #00ff00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+  text-align: center;
 }
 
 /* Throttle Bar */
@@ -369,12 +390,22 @@
     font-size: 36px;
   }
 
+  .sei-racing-wheel-icon {
+    width: 36px;
+    height: 36px;
+  }
+
   .sei-racing-steering-angle {
     font-size: 14px;
   }
 
-  .sei-racing-gforce-value {
-    font-size: 16px;
+  .sei-racing-gforce-svg {
+    width: 100px;
+    height: 100px;
+  }
+
+  .sei-racing-gforce-num {
+    font-size: 11px;
   }
 
   .sei-racing-bar-container {
